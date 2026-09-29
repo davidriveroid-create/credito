@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_creditos %}activo{% endblock %}
+{% block titulo %}Credito #{{ credito.id }}{% endblock %}
+{% block encabezado %}
+  {{ credito.nombre_producto }}
+  <small>Credito #{{ credito.id }} &middot; {{ cliente.nombre_completo }}</small>
+{% endblock %}
+
+{% block acciones_cabecera %}
+  <a href="{% url 'ficha_cliente' cliente.id %}" class="boton boton-neutro">Ver cliente</a>
+  {% if puede_pagar %}
+    <a href="{% url 'registrar_pago' credito.id %}" class="boton boton-exito">Cobrar</a>
+  {% endif %}
+{% endblock %}
+
+{% block contenido %}
+
+<div class="rejilla-tarjetas">
+  <div class="cifra">
+    <span class="etiqueta">Valor financiado</span>
+    <span class="valor texto-dinero">{% pesos credito.valor_financiado %}</span>
+    <span class="nota">Precio de contado: {% pesos credito.precio_contado %}</span>
+  </div>
+  <div class="cifra verde">
+    <span class="etiqueta">Total pagado</span>
+    <span class="valor texto-dinero">{% pesos credito.total_pagado %}</span>
+    <span class="nota">{{ progreso }}% del total</span>
+  </div>
+  <div class="cifra {% if credito.saldo > 0 %}naranja{% else %}verde{% endif %}">
+    <span class="etiqueta">Saldo pendiente</span>
+    <span class="valor texto-dinero">{% pesos credito.saldo %}</span>
+    <span class="nota">Faltan {{ pendientes }} cuota{{ pendientes|pluralize:"s" }}</span>
+  </div>
+  <div class="cifra rojo">
+    <span class="etiqueta">Cuotas vencidas</span>
+    <span class="valor">{{ credito.cuotas_vencidas }}</span>
+    <span class="nota">Sin pagar o incompletas</span>
+  </div>
+</div>
+
+<div style="margin-bottom:1.2rem">
+  {% barra_porcentaje progreso "var(--verde)" "12px" %}
+  <div class="barra-detalle">
+    <span>{{ credito.cuotas_pagadas }} de {{ credito.numero_cuotas }} cuotas pagadas</span>
+    <span>{{ progreso }}%</span>
+  </div>
+</div>
+
+<div class="rejilla-33">
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Datos de la venta</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <div class="resumen-linea">
+        <span class="etiqueta">Cliente</span>
+        <span class="valor">
+          <a href="{% url 'ficha_cliente' cliente.id %}">{{ cliente.nombre_completo }}</a>
+        </span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Cedula</span>
+        <span class="valor dato-sensible">{{ cliente.cedula }}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Producto</span>
+        <span class="valor">{{ credito.nombre_producto }}</span>
+      </div>
+      {% if credito.producto %}
+        <div class="resumen-linea">
+          <span class="etiqueta">Marca / Modelo</span>
+          <span class="valor">
+            {{ credito.producto.marca }}{% if credito.producto.modelo %} {{ credito.producto.modelo }}{% endif %}
+          </span>
+        </div>
+        {% if credito.producto.numero_serie %}
+          <div class="resumen-linea">
+            <span class="etiqueta">Numero de serie</span>
+            <span class="valor">{{ credito.producto.numero_serie }}</span>
+          </div>
+        {% endif %}
+      {% endif %}
+      <div class="resumen-linea">
+        <span class="etiqueta">Fecha de la venta</span>
+        <span class="valor">{% fecha_larga credito.fecha_venta %}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Forma de pago</span>
+        <span class="valor">{{ credito.frecuencia.nombre }} &middot; {{ credito.numero_cuotas }} cuotas</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Valor de cada cuota</span>
+        <span class="valor">{% pesos credito.valor_cuota %}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Primera cuota</span>
+        <span class="valor">{% fecha credito.fecha_primera_cuota %}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">{% if credito.fecha_finalizacion %}Termino el{% else %}Terminaria el{% endif %}</span>
+        <span class="valor">
+          {% if credito.fecha_finalizacion %}{% fecha credito.fecha_finalizacion %}
+          {% else %}{% fecha credito.fecha_estimada_fin %}{% endif %}
+        </span>
+      </div>
+      {% if credito.observaciones %}
+        <div class="resumen-linea">
+          <span class="etiqueta">Observaciones</span>
+          <span class="valor">{{ credito.observaciones }}</span>
+        </div>
+      {% endif %}
+      {% if credito.creado_por %}
+        <div class="resumen-linea">
+          <span class="etiqueta">Registrado por</span>
+          <span class="valor">{{ credito.creado_por.get_username }} &middot; {% fecha credito.fecha_creacion %}</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Estado de las cuotas</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      {% for nombre_estado, texto_estado, clase_estado in conteo_filas %}
+        <div class="resumen-linea">
+          <span class="etiqueta"><span class="estado-cuota {{ clase_estado }}">{{ texto_estado }}</span></span>
+          <span class="valor {% if clase_estado == 'rojo' %}texto-rojo{% elif clase_estado == 'verde' %}texto-verde{% endif %}">
+            {% clave conteo nombre_estado %}
+          </span>
+        </div>
+      {% endfor %}
+
+      <hr class="separador">
+
+      <div class="resumen-linea">
+        <span class="etiqueta">Total de cuotas</span>
+        <span class="valor">{{ credito.numero_cuotas }}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Regularidad del credito</span>
+        <span class="valor" style="color:{{ regularidad.color }}">
+          {{ regularidad.porcentaje }}% &middot; {{ regularidad.etiqueta }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Acciones</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <div class="formulario">
+        {% if puede_pagar %}
+          <a href="{% url 'registrar_pago' credito.id %}" class="boton boton-exito boton-bloque">
+            Registrar pago
+          </a>
+        {% endif %}
+        <a href="{% url 'editar_credito' credito.id %}" class="boton boton-neutro boton-bloque">
+          Editar datos
+        </a>
+        <a href="{% url 'historial_pagos' %}?q={{ credito.id }}" class="boton boton-neutro boton-bloque">
+          Ver {{ cantidad_pagos }} pago{{ cantidad_pagos|pluralize:"s" }}
+        </a>
+        {% if es_administrador and credito.estado != 'ANULADO' %}
+          <form method="post" action="{% url 'anular_credito' credito.id %}"
+                data-confirmar="{% if credito.pagos.exists %}Este credito ya tiene pagos registrados. Se va a ANULAR (no borrar) y el historial queda guardado. Continuar?{% else %}Se va a eliminar este credito porque no tiene pagos. Continuar?{% endif %}">
+            {% csrf_token %}
+            <input type="text" name="motivo" placeholder="Motivo (opcional)" class="campo campo-pequeno">
+            <button type="submit" class="boton boton-peligro boton-bloque">
+              {% if credito.pagos.exists %}Anular credito{% else %}Eliminar credito{% endif %}
+            </button>
+          </form>
+        {% endif %}
+      </div>
+
+      {% if credito.estado == 'PAGADO' %}
+        <div class="tarjeta-mini mt-1" style="background:var(--verde-claro);border-color:var(--verde)">
+          <span class="titulo texto-verde">&#10003; CREDITO PAGADO COMPLETO</span>
+          Terminado el {% fecha_larga credito.fecha_finalizacion %}.<br>
+          {{ credito.cuotas_pagadas }} cuotas &middot; {% pesos credito.total_pagado %}<br>
+          <small>El historial se conserva completo.</small>
+        </div>
+      {% elif credito.estado == 'ANULADO' %}
+        <div class="tarjeta-mini mt-1">
+          <span class="titulo">Este credito esta ANULADO</span>
+          Sus pagos e historial se conservan. No admite nuevos pagos.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="tarjeta mb-2">
+  <div class="tarjeta-cabecera">
+    <h2>Plan de pagos ({{ credito.numero_cuotas }} cuotas)</h2>
+    {% if siguiente %}
+      <span class="insignia azul">
+        Proxima: cuota {{ siguiente.numero }} &middot; {% fecha siguiente.fecha_vencimiento %}
+      </span>
+    {% endif %}
+  </div>
+
+  <div class="tabla-envoltura">
+    <table class="tabla-mini">
+      <thead>
+        <tr>
+          <th class="centro">#</th>
+          <th>Vence</th>
+          <th>Estado</th>
+          <th class="derecha">Valor cuota</th>
+          <th class="derecha">Abonado</th>
+          <th class="derecha">Saldo</th>
+          <th>Pago</th>
+          <th>Atraso</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cuota in cuotas %}
+          {% with estado=cuota.estado_real %}
+          <tr>
+            <td class="centro negrita">{{ cuota.numero }}</td>
+            <td>
+              {% fecha cuota.fecha_vencimiento %}
+              <br><small class="texto-suave">{% relativo cuota.fecha_vencimiento %}</small>
+            </td>
+            <td>
+              <span class="estado-cuota {% color_estado estado %}">{% nombre_estado estado %}</span>
+            </td>
+            <td class="derecha texto-dinero">{% pesos cuota.valor %}</td>
+            <td class="derecha texto-dinero {% if cuota.valor_pagado > 0 %}texto-verde{% endif %}">
+              {% pesos cuota.valor_pagado %}
+            </td>
+            <td class="derecha texto-dinero {% if cuota.saldo > 0 %}texto-naranja{% endif %}">
+              {% pesos cuota.saldo %}
+            </td>
+            <td>
+              {% if cuota.fecha_pago %}
+                <span class="texto-verde texto-pequeno">{% fecha cuota.fecha_pago %}</span>
+              {% elif cuota.fecha_ultimo_abono %}
+                <span class="texto-naranja texto-pequeno">abono {% fecha cuota.fecha_ultimo_abono %}</span>
+              {% else %}
+                <span class="texto-suave texto-pequeno">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if estado == 'VENCIDA' %}
+                <span class="insignia rojo">{{ cuota.dias_de_atraso }} d</span>
+              {% elif cuota.fecha_pago and cuota.fecha_pago > cuota.fecha_vencimiento %}
+                <span class="insignia naranja">{{ cuota.dias_de_atraso }} d tarde</span>
+              {% else %}
+                <span class="texto-suave texto-pequeno">-</span>
+              {% endif %}
+            </td>
+            <td class="derecha">
+              {% if credito.estado == 'ACTIVO' and cuota.saldo > 0 %}
+                <a href="{% url 'registrar_pago' credito.id %}?cuota={{ cuota.id }}"
+                   class="boton boton-exito boton-pequeno">Cobrar</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pagos %}
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Pagos registrados en este credito</h2>
+      <span class="texto-pequeno texto-suave">{{ cantidad_pagos }} vigente{{ cantidad_pagos|pluralize:"s" }}</span>
+    </div>
+    <div class="tabla-envoltura">
+      <table class="tabla-mini">
+        <thead>
+          <tr>
+            <th>Comprobante</th>
+            <th>Fecha</th>
+            <th>Cuota</th>
+            <th class="derecha">Valor</th>
+            <th>Metodo</th>
+            <th class="derecha">Saldo despues</th>
+            <th>Estado</th>
+            {% if es_administrador %}<th></th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for pago in pagos %}
+            <tr {% if pago.anulado %}style="opacity:.6"{% endif %}>
+              <td><a href="{% url 'comprobante' pago.id %}">{{ pago.recibo }}</a></td>
+              <td>{% fecha pago.fecha %} {% reloj pago.hora %}</td>
+              <td>{% if pago.cuota %}#{{ pago.cuota.numero }}{% else %}Anticipo{% endif %}</td>
+              <td class="derecha texto-dinero">{% pesos pago.valor %}</td>
+              <td>{{ pago.metodo }}</td>
+              <td class="derecha texto-dinero">{% pesos pago.saldo_despues %}</td>
+              <td>
+                {% if pago.anulado %}
+                  <span class="insignia rojo">ANULADO</span>
+                {% else %}
+                  <span class="insignia verde">VIGENTE</span>
+                {% endif %}
+              </td>
+              {% if es_administrador %}
+                <td class="derecha">
+                  {% if not pago.anulado %}
+                    <div class="boton-fila" style="flex-wrap:nowrap">
+                      <a href="{% url 'corregir_pago' pago.id %}" class="boton boton-pequeno boton-alerta">Corregir</a>
+                      <a href="{% url 'anular_pago' pago.id %}" class="boton boton-pequeno boton-peligro">Anular</a>
+                    </div>
+                  {% endif %}
+                </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+{% if historial %}
+  <div class="tarjeta mt-2">
+    <div class="tarjeta-cabecera">
+      <h2>Movimientos de este credito</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <div class="linea-tiempo">
+        {% for movimiento in historial %}
+          <div class="evento {% if movimiento.tipo == 'PAGO' %}pago{% endif %}">
+            {{ movimiento.descripcion }}
+            <small>
+              {% momento movimiento.fecha %}
+              {% if movimiento.usuario %} &middot; {{ movimiento.usuario.get_username }}{% endif %}
+            </small>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

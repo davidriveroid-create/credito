@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_creditos %}activo{% endblock %}
+{% block titulo %}Catalogo de productos{% endblock %}
+{% block buscador %}{% endblock %}
+{% block encabezado %}
+  Catalogo de productos
+  <small>{{ productos|length }} producto{{ productos|length|pluralize:"s" }}</small>
+{% endblock %}
+
+{% block acciones_cabecera %}
+  <a href="{% url 'nuevo_credito' %}" class="boton boton-neutro">Ir a vender</a>
+{% endblock %}
+
+{% block contenido %}
+<div class="rejilla-2" style="grid-template-columns:1fr 340px">
+
+  <div>
+    <form method="get" class="filtros">
+      <div class="grupo" style="flex:1">
+        <label for="q">Buscar producto</label>
+        <input type="search" id="q" name="q" class="campo" value="{{ q }}"
+               placeholder="Nombre, marca o modelo">
+      </div>
+      <button type="submit" class="boton boton-primario">Buscar</button>
+      <a href="{% url 'productos' %}" class="boton boton-neutro">Limpiar</a>
+    </form>
+
+    {% if productos %}
+      <div class="tarjeta">
+        <div class="tabla-envoltura">
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Marca</th>
+                <th>Modelo</th>
+                <th class="derecha">Precio de contado</th>
+                <th class="centro">Veces vendido</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for producto in productos %}
+                <tr>
+                  <td><strong>{{ producto.nombre }}</strong></td>
+                  <td>{{ producto.marca|default:"-" }}</td>
+                  <td>{{ producto.modelo|default:"-" }}</td>
+                  <td class="derecha texto-dinero">{% pesos producto.precio_contado %}</td>
+                  <td class="centro">{{ producto.n_ventas }}</td>
+                  <td class="derecha">
+                    {% if producto.activo %}
+                      <a href="{% url 'nuevo_credito' %}" class="boton boton-pequeno boton-neutro">Vender</a>
+                    {% else %}
+                      <span class="insignia gris">Inactivo</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <div class="tarjeta">
+        <div class="tarjeta-cuerpo centrado" style="padding:2.2rem 1rem">
+          <div style="font-size:2.4rem">&#128230;</div>
+          <h3>{% if q %}No se encontro ese producto{% else %}El catalogo esta vacio{% endif %}</h3>
+          <p class="texto-suave">
+            El catalogo es opcional. Al crear un credito puede escribir el
+            nombre del producto a mano si no lo registra aqui.
+          </p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3>+ Agregar producto</h3>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <form method="post" action="{% url 'crear_producto' %}" class="formulario">
+          {% csrf_token %}
+          <div class="grupo">
+            <label>Nombre del producto *</label>
+            <input type="text" name="nombre" class="campo" placeholder="Xiaomi Scooter" required>
+          </div>
+          <div class="fila">
+            <div class="grupo">
+              <label>Marca</label>
+              <input type="text" name="marca" class="campo" placeholder="Xiaomi">
+            </div>
+            <div class="grupo">
+              <label>Modelo</label>
+              <input type="text" name="modelo" class="campo" placeholder="Mi Electric">
+            </div>
+          </div>
+          <div class="grupo">
+            <label>Numero de serie</label>
+            <input type="text" name="numero_serie" class="campo">
+          </div>
+          <div class="grupo">
+            <label>Precio de contado</label>
+            <input type="text" name="precio_contado" class="campo dinero" placeholder="1000000">
+            <span class="ayuda">Sirve para calcular rapido el precio financiado.</span>
+          </div>
+          <button type="submit" class="boton boton-primario boton-bloque">Guardar producto</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

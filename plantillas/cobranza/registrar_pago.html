@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_cobrar %}activo{% endblock %}
+{% block titulo %}Registrar pago - {{ negocio.nombre_negocio }}{% endblock %}
+{% block encabezado %}
+  Registrar pago
+  <small>{{ cliente.nombre_completo }} &middot; {{ credito.nombre_producto }}</small>
+{% endblock %}
+{% block buscador %}{% endblock %}
+
+{% block acciones_cabecera %}
+  <a href="{% url 'cobrar_cliente' cliente.id %}" class="boton boton-neutro">Otro cobro</a>
+  <a href="{% url 'ficha_credito' credito.id %}" class="boton boton-neutro">Ver credito</a>
+{% endblock %}
+
+{% block contenido %}
+<div class="cobro-flujo">
+
+  <div>
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>&#128179; Cobrar a {{ cliente.nombre_completo }}</h2>
+        <a href="{% url 'cobrar_cliente' cliente.id %}" class="boton boton-pequeno boton-neutro">
+          Cambiar de credito
+        </a>
+      </div>
+
+      <div class="tarjeta-cuerpo">
+        <div class="aviso-anticipo" id="aviso-anticipo" style="display:none"></div>
+
+        <form method="post" id="form-cobro"
+              data-credito="{{ credito.id }}"
+              data-saldo="{{ credito.saldo }}">
+          {% csrf_token %}
+
+          {{ form.credito }}
+          {{ form.cuota }}
+          {{ form.es_anticipo_confirmado }}
+          {{ form.token }}
+
+          <div class="tarjeta-mini mb-2">
+            <span class="titulo">{{ credito.nombre_producto }} &middot; Credito #{{ credito.id }}</span>
+            Vence {{ credito.frecuencia.nombre|lower }} &middot;
+            {{ credito.numero_cuotas }} cuotas de {% pesos credito.valor_cuota %}<br>
+            Saldo total pendiente: <strong>{% pesos credito.saldo %}</strong>
+            {% if credito.cuotas_vencidas > 0 %}
+              &middot; <span class="texto-rojo negrita">{{ credito.cuotas_vencidas }} cuota{{ credito.cuotas_vencidas|pluralize:"s" }} vencida{{ credito.cuotas_vencidas|pluralize:"s" }}</span>
+            {% endif %}
+          </div>
+
+          <div id="info-cuota" class="tarjeta-mini mb-2">
+            {% if cuota %}
+              <span class="titulo">
+                Cuota {{ cuota.numero }} de {{ credito.numero_cuotas }}
+                &middot; vencia {% fecha cuota.fecha_vencimiento %}
+              </span>
+              Valor de la cuota: {% pesos cuota.valor %}<br>
+              Ya abonado: {% pesos cuota.valor_pagado %}<br>
+              <strong>Falta: {% pesos cuota.saldo %}</strong>
+              {% if cuota.estado_real == 'VENCIDA' %}
+                <br><span class="texto-rojo">Esta cuota esta vencida hace
+                {{ cuota.dias_de_atraso }} dia{{ cuota.dias_de_atraso|pluralize:"s" }}.</span>
+              {% endif %}
+            {% else %}
+              <span class="titulo">No hay cuotas pendientes</span>
+            {% endif %}
+          </div>
+
+          <div class="grupo">
+            <label for="{{ form.valor.id_for_label }}">{{ form.valor.label }}</label>
+            {{ form.valor }}
+            {% for error in form.valor.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+
+          <div class="atajos">
+            <button type="button" class="atajo" data-monto="cuota" data-valor="{{ cuota.saldo|default:'0' }}">
+              Cuota completa {% if cuota %}({% pesos cuota.saldo %}){% endif %}
+            </button>
+            <button type="button" class="atajo" data-monto="saldo">
+              Saldo total ({% pesos credito.saldo %})
+            </button>
+            <button type="button" class="atajo" data-monto="mitad" data-valor="{{ cuota.saldo|default:'0' }}">
+              Mitad
+            </button>
+          </div>
+
+          <div class="fila mt-2">
+            <div class="grupo">
+              <label for="{{ form.metodo.id_for_label }}">{{ form.metodo.label }}</label>
+              {{ form.metodo }}
+              {% for error in form.metodo.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+            </div>
+            <div class="grupo">
+              <label for="{{ form.fecha.id_for_label }}">{{ form.fecha.label }}</label>
+              {{ form.fecha }}
+              {% for error in form.fecha.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+            </div>
+          </div>
+
+          <div class="grupo">
+            <label for="{{ form.referencia.id_for_label }}">{{ form.referencia.label }}</label>
+            {{ form.referencia }}
+            {% for error in form.referencia.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+
+          <div class="grupo">
+            <label for="{{ form.observaciones.id_for_label }}">{{ form.observaciones.label }}</label>
+            {{ form.observaciones }}
+          </div>
+
+          <button type="submit" class="boton boton-exito boton-grande boton-bloque mt-2">
+            &#10003; Registrar pago
+          </button>
+
+          <p class="texto-pequeno texto-suave centrado mt-1 mb-0">
+            Si pulsa dos veces o recarga la pagina, el pago
+            <strong>no se cobra dos veces</strong>.
+          </p>
+        </form>
+      </div>
+    </div>
+
+    {% if ultimos_pagos %}
+      <div class="tarjeta mt-2">
+        <div class="tarjeta-cabecera">
+          <h3>Ultimos pagos de este cliente</h3>
+        </div>
+        <div class="tarjeta-cuerpo">
+          <ul class="lista-simple">
+            {% for pago in ultimos_pagos %}
+              <li>
+                <span class="texto-pequeno">{% fecha pago.fecha %}</span>
+                <div style="flex:1">
+                  <strong>{% pesos pago.valor %}</strong>
+                  <small class="texto-suave" style="display:block;font-size:.72rem">
+                    {{ pago.metodo }} &middot; {{ pago.credito.nombre_producto|truncatechars:20 }}
+                  </small>
+                </div>
+                <a href="{% url 'comprobante' pago.id %}" class="boton boton-pequeno boton-neutro">Ver</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3>Cuotas del credito</h3>
+        <span class="texto-pequeno texto-suave">Toque para cobrar una</span>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="cuotas-lista">
+          {% for c in cuotas %}
+            {% with estado=c.estado_real %}
+              <div class="cuota-fila {% color_estado estado %}{% if cuota and c.id == cuota.id %} elegida{% endif %}"
+                   data-cuota="{{ c.id }}"
+                   data-saldo="{{ c.saldo }}"
+                   data-info="Cuota {{ c.numero }} - vence {% fecha c.fecha_vencimiento %} - falta {% numero c.saldo %}">
+                <span class="numero">{{ c.numero }}</span>
+                <div class="info">
+                  <strong>{% pesos c.valor %}</strong>
+                  <small>
+                    {% fecha c.fecha_vencimiento %}
+                    {% if estado == 'VENCIDA' %}
+                      &middot; <span class="texto-rojo">{{ c.dias_de_atraso }}d atraso</span>
+                    {% elif c.esta_pagada %}
+                      &middot; <span class="texto-verde">pagada</span>
+                    {% endif %}
+                  </small>
+                </div>
+                <span class="estado-cuota {% color_estado estado %}">{% nombre_estado estado %}</span>
+              </div>
+            {% endwith %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

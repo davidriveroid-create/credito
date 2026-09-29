@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_clientes %}activo{% endblock %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block encabezado %}
+  {{ titulo }}
+  <small>Los campos con * son obligatorios</small>
+{% endblock %}
+{% block buscador %}{% endblock %}
+
+{% block contenido %}
+<div style="max-width:820px">
+  <form method="post" class="formulario">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="mensaje mensaje-error">
+        <span>&#10007;</span>
+        <span>{% for error in form.non_field_errors %}{{ error }}<br>{% endfor %}</span>
+      </div>
+    {% endif %}
+
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Informacion personal</h2>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.nombres.id_for_label }}">{{ form.nombres.label }}</label>
+            {{ form.nombres }}
+            {% for error in form.nombres.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.apellidos.id_for_label }}">{{ form.apellidos.label }}</label>
+            {{ form.apellidos }}
+            {% for error in form.apellidos.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.cedula.id_for_label }}">{{ form.cedula.label }}</label>
+            {{ form.cedula }}
+            <span class="ayuda">Solo numeros. Ejemplo: 123456789</span>
+            {% for error in form.cedula.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.fecha_nacimiento.id_for_label }}">{{ form.fecha_nacimiento.label }}</label>
+            {{ form.fecha_nacimiento }}
+            {% for error in form.fecha_nacimiento.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Contacto y direccion</h2>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.telefono.id_for_label }}">{{ form.telefono.label }}</label>
+            {{ form.telefono }}
+            {% for error in form.telefono.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.telefono_alternativo.id_for_label }}">{{ form.telefono_alternativo.label }}</label>
+            {{ form.telefono_alternativo }}
+            {% for error in form.telefono_alternativo.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+
+        <div class="grupo">
+          <label for="{{ form.direccion.id_for_label }}">{{ form.direccion.label }}</label>
+          {{ form.direccion }}
+          {% for error in form.direccion.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+        </div>
+
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.ciudad.id_for_label }}">{{ form.ciudad.label }}</label>
+            {{ form.ciudad }}
+            {% for error in form.ciudad.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.barrio.id_for_label }}">{{ form.barrio.label }}</label>
+            {{ form.barrio }}
+          </div>
+        </div>
+
+        <div class="grupo">
+          <label for="{{ form.ocupacion.id_for_label }}">{{ form.ocupacion.label }}</label>
+          {{ form.ocupacion }}
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Referencia personal</h2>
+        <span class="texto-pequeno texto-suave">A quien llamar si no contesta</span>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.referencia_nombre.id_for_label }}">{{ form.referencia_nombre.label }}</label>
+            {{ form.referencia_nombre }}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.referencia_telefono.id_for_label }}">{{ form.referencia_telefono.label }}</label>
+            {{ form.referencia_telefono }}
+            {% for error in form.referencia_telefono.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Observaciones</h2>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="grupo">
+          {{ form.observaciones }}
+          {% for error in form.observaciones.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="boton-fila">
+      <button type="submit" class="boton boton-primario boton-grande">
+        {% if accion == 'crear' %}Guardar cliente{% else %}Guardar cambios{% endif %}
+      </button>
+      {% if accion == 'crear' %}
+        <button type="submit" name="guardar_y_credito" value="1" class="boton boton-exito">
+          Guardar y crear credito
+        </button>
+      {% endif %}
+      <a href="{% if cliente %}{% url 'ficha_cliente' cliente.id %}{% else %}{% url 'clientes' %}{% endif %}"
+         class="boton boton-neutro">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

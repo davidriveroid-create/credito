@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_config %}activo{% endblock %}
+{% block titulo %}Configuracion{% endblock %}
+{% block buscador %}{% endblock %}
+{% block encabezado %}
+  Configuracion del sistema
+  <small>Datos del negocio y reglas de la barra de regularidad</small>
+{% endblock %}
+
+{% block contenido %}
+
+<div class="rejilla-2" style="grid-template-columns:1fr 320px">
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="tarjeta mb-2">
+      <div class="tarjeta-cabecera">
+        <h2>1. Datos del negocio</h2>
+        <span class="texto-pequeno texto-suave">Aparecen en el menu y en los comprobantes</span>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="grupo">
+          <label for="{{ form.nombre_negocio.id_for_label }}">{{ form.nombre_negocio.label }}</label>
+          {{ form.nombre_negocio }}
+          {% for error in form.nombre_negocio.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+        </div>
+
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.telefono.id_for_label }}">{{ form.telefono.label }}</label>
+            {{ form.telefono }}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.nit.id_for_label }}">{{ form.nit.label }}</label>
+            {{ form.nit }}
+          </div>
+        </div>
+
+        <div class="grupo">
+          <label for="{{ form.direccion.id_for_label }}">{{ form.direccion.label }}</label>
+          {{ form.direccion }}
+        </div>
+
+        <div class="grupo">
+          <label for="{{ form.logo.id_for_label }}">{{ form.logo.label }}</label>
+          {% if config.logo %}
+            <img src="{{ config.logo.url }}" alt="Logo actual"
+                 style="max-width:120px;max-height:80px;border-radius:8px;border:1px solid var(--borde);margin-bottom:.4rem">
+          {% endif %}
+          {{ form.logo }}
+        </div>
+
+        <div class="grupo">
+          <label for="{{ form.mensaje_comprobante.id_for_label }}">{{ form.mensaje_comprobante.label }}</label>
+          {{ form.mensaje_comprobante }}
+          <span class="ayuda">Aparece al final del comprobante de pago.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta mb-2">
+      <div class="tarjeta-cabecera">
+        <h2>2. Dinero y fechas</h2>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="fila-3">
+          <div class="grupo">
+            <label for="{{ form.moneda_simbolo.id_for_label }}">{{ form.moneda_simbolo.label }}</label>
+            {{ form.moneda_simbolo }}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.moneda_codigo.id_for_label }}">{{ form.moneda_codigo.label }}</label>
+            {{ form.moneda_codigo }}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.moneda_decimales.id_for_label }}">{{ form.moneda_decimales.label }}</label>
+            {{ form.moneda_decimales }}
+            <span class="ayuda">Para pesos colombianos: 0</span>
+          </div>
+        </div>
+        <div class="grupo">
+          <label for="{{ form.formato_fecha.id_for_label }}">{{ form.formato_fecha.label }}</label>
+          {{ form.formato_fecha }}
+          <span class="ayuda">Formato de Python: %d/%m/%Y = 15/03/2026</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta mb-2">
+      <div class="tarjeta-cabecera">
+        <h2>3. Reglas de la regularidad de pago</h2>
+        <span class="texto-pequeno texto-suave">Aqui se decide quien sale EXCELENTE, BUENO o MOROSO</span>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.umbral_excelente.id_for_label }}">{{ form.umbral_excelente.label }}</label>
+            {{ form.umbral_excelente }}
+            <span class="ayuda">{{ form.umbral_excelente.help_text }}</span>
+            {% for error in form.umbral_excelente.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.umbral_bueno.id_for_label }}">{{ form.umbral_bueno.label }}</label>
+            {{ form.umbral_bueno }}
+            <span class="ayuda">{{ form.umbral_bueno.help_text }}</span>
+            {% for error in form.umbral_bueno.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.dias_para_moroso.id_for_label }}">{{ form.dias_para_moroso.label }}</label>
+            {{ form.dias_para_moroso }}
+            <span class="ayuda">{{ form.dias_para_moroso.help_text }}</span>
+            {% for error in form.dias_para_moroso.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.dias_gracia.id_for_label }}">{{ form.dias_gracia.label }}</label>
+            {{ form.dias_gracia }}
+            <span class="ayuda">{{ form.dias_gracia.help_text }}</span>
+          </div>
+        </div>
+
+        <div class="grupo">
+          <label for="{{ form.minimo_cuotas_para_clasificar.id_for_label }}">
+            {{ form.minimo_cuotas_para_clasificar.label }}
+          </label>
+          {{ form.minimo_cuotas_para_clasificar }}
+          <span class="ayuda">{{ form.minimo_cuotas_para_clasificar.help_text }}</span>
+        </div>
+      </div>
+      <div class="tarjeta-pie">
+        <h3 style="margin:0 0 .5rem;font-size:.85rem">Asi se vera la barra con estos parametros</h3>
+        {% for item in previa %}
+          <div class="boton-fila mb-1" style="align-items:center;flex-wrap:nowrap">
+            <span class="texto-pequeno" style="width:150px">{{ item.etiqueta }}</span>
+            <div style="flex:1">
+              <div class="barra-regularidad" style="height:8px">
+                <div class="barra-relleno" style="width:{{ item.porcentaje }}%;background:{{ item.color }}"></div>
+              </div>
+              <span class="barra-texto texto-pequeno">{{ item.barra }}</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="boton-fila">
+      <button type="submit" class="boton boton-primario boton-grande">Guardar configuracion</button>
+      <a href="{% url 'dashboard' %}" class="boton boton-neutro">Volver</a>
+    </div>
+  </form>
+
+  <div>
+    <div class="tarjeta mb-2">
+      <div class="tarjeta-cabecera">
+        <h3>Formas de pago</h3>
+      </div>
+      <div class="tarjeta-cuerpo">
+        {% for frecuencia in catalogos.frecuencias %}
+          <div class="tarjeta-mini mb-1">
+            <div class="boton-fila" style="justify-content:space-between">
+              <span>
+                <strong>{{ frecuencia.nombre }}</strong>
+                <small class="texto-suave" style="display:block;font-size:.72rem">
+                  {% if frecuencia.unidad == 'MESES' %}
+                    cada {{ frecuencia.dias }} mes{{ frecuencia.dias|pluralize:"es" }} de calendario
+                  {% else %}
+                    cada {{ frecuencia.dias }} dia{{ frecuencia.dias|pluralize:"s" }}
+                  {% endif %}
+                </small>
+              </span>
+              <span class="insignia {% if frecuencia.activo %}verde{% else %}gris{% endif %}">
+                {% if frecuencia.activo %}Activa{% else %}Inactiva{% endif %}
+              </span>
+            </div>
+          </div>
+        {% endfor %}
+
+        <hr class="separador">
+        <details>
+          <summary class="boton boton-pequeno boton-neutro boton-bloque"
+                   style="cursor:pointer;list-style:none">+ Agregar una forma de pago</summary>
+          <form method="post" action="{% url 'guardar_frecuencia' %}" class="formulario mt-1">
+            {% csrf_token %}
+            <div class="fila">
+              <div class="grupo">
+                <label>Nombre</label>
+                <input type="text" name="nombre" class="campo" placeholder="SEMANAL" required>
+              </div>
+              <div class="grupo">
+                <label>Cada cuanto</label>
+                <input type="number" name="dias" class="campo" value="7" min="1" required>
+              </div>
+            </div>
+            <div class="grupo">
+              <label>Unidad</label>
+              <select name="unidad" class="campo">
+                <option value="DIAS">Dias (7 = una semana)</option>
+                <option value="MESES">Meses de calendario (1 = un mes)</option>
+              </select>
+            </div>
+            <input type="number" name="orden" class="campo campo-pequeno" value="70">
+            <button type="submit" class="boton boton-primario boton-bloque mt-1">Guardar forma de pago</button>
+          </form>
+        </details>
+      </div>
+    </div>
+
+    <div class="tarjeta mb-2">
+      <div class="tarjeta-cabecera">
+        <h3>Metodos de pago</h3>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="boton-fila">
+          {% for metodo in catalogos.metodos %}
+            <span class="insignia {% if metodo.activo %}azul{% else %}gris{% endif %}">{{ metodo.nombre }}</span>
+          {% endfor %}
+        </div>
+
+        <hr class="separador">
+        <details>
+          <summary class="boton boton-pequeno boton-neutro boton-bloque"
+                   style="cursor:pointer;list-style:none">+ Agregar un metodo de pago</summary>
+          <form method="post" action="{% url 'guardar_metodo_pago' %}" class="formulario mt-1">
+            {% csrf_token %}
+            <div class="grupo">
+              <label>Nombre</label>
+              <input type="text" name="nombre" class="campo" placeholder="RappiPay" required>
+            </div>
+            <input type="number" name="orden" class="campo campo-pequeno" value="70">
+            <button type="submit" class="boton boton-primario boton-bloque mt-1">Guardar metodo</button>
+          </form>
+        </details>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3>Usuarios del sistema</h3>
+        <a href="{% url 'usuarios' %}" class="boton boton-pequeno boton-neutro">Administrar</a>
+      </div>
+      <div class="tarjeta-cuerpo">
+        {% for usuario in usuarios %}
+          <div class="resumen-linea">
+            <span class="etiqueta">
+              {{ usuario.get_username }}
+              {% if usuario.perfil %}<small>({{ usuario.perfil.get_rol_display }})</small>{% endif %}
+            </span>
+            <span class="valor">
+              {% if usuario.is_active %}
+                <span class="insignia verde">Activo</span>
+              {% else %}
+                <span class="insignia gris">Inactivo</span>
+              {% endif %}
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_calendario %}activo{% endblock %}
+{% block titulo %}{% fecha fecha %}{% endblock %}
+{% block encabezado %}
+  {% fecha_larga fecha %}
+  <small>
+    {% if es_hoy %}Hoy{% elif es_pasado %}Dia pasado{% else %}Proximo{% endif %}
+    &middot; {{ datos.filas|length }} cuota{{ datos.filas|length|pluralize:"s" }}
+  </small>
+{% endblock %}
+
+{% block acciones_cabecera %}
+  <a href="{% url 'calendario' %}?anio={{ fecha.year }}&amp;mes={{ fecha.month }}" class="boton boton-neutro">
+    Volver al mes
+  </a>
+{% endblock %}
+
+{% block contenido %}
+
+<div class="rejilla-tarjetas">
+  <div class="cifra">
+    <span class="etiqueta">Esperado este dia</span>
+    <span class="valor texto-dinero">{% pesos datos.esperado %}</span>
+    <span class="nota">{{ datos.filas|length }} cuota{{ datos.filas|length|pluralize:"s" }} programada{{ datos.filas|length|pluralize:"s" }}</span>
+  </div>
+  <div class="cifra verde">
+    <span class="etiqueta">Recibido</span>
+    <span class="valor texto-dinero">{% pesos datos.recibido %}</span>
+    <span class="nota">Cuotas ya completas</span>
+  </div>
+  <div class="cifra naranja">
+    <span class="etiqueta">Pendiente</span>
+    <span class="valor texto-dinero">{% pesos datos.pendiente %}</span>
+    <span class="nota">Falta por cobrar</span>
+  </div>
+</div>
+
+{% if datos.filas %}
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>A quien hay que cobrarle</h2>
+      <span class="texto-pequeno texto-suave">Ordenado por apellido</span>
+    </div>
+    <div class="tabla-envoltura">
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Contacto</th>
+            <th>Producto</th>
+            <th class="centro">Cuota</th>
+            <th class="derecha">Valor</th>
+            <th class="derecha">Saldo</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fila in datos.filas %}
+            <tr>
+              <td>
+                <a href="{% url 'ficha_cliente' fila.cliente.id %}">
+                  <strong>{{ fila.cliente.nombre_completo }}</strong>
+                </a>
+                <br><small class="dato-sensible">{{ fila.cliente.cedula }}</small>
+              </td>
+              <td><a href="tel:{{ fila.cliente.telefono }}">&#128222; {{ fila.cliente.telefono }}</a></td>
+              <td>{{ fila.credito.nombre_producto|truncatechars:22 }}</td>
+              <td class="centro negrita">{{ fila.cuota.numero }}</td>
+              <td class="derecha texto-dinero">{% pesos fila.cuota.valor %}</td>
+              <td class="derecha texto-dinero {% if fila.saldo > 0 %}texto-naranja{% endif %}">{% pesos fila.saldo %}</td>
+              <td>
+                <span class="estado-cuota {% color_estado fila.estado %}">{% nombre_estado fila.estado %}</span>
+              </td>
+              <td class="derecha">
+                {% if fila.credito.estado == 'ACTIVO' and fila.saldo > 0 %}
+                  <a href="{% url 'registrar_pago' fila.credito.id %}?cuota={{ fila.cuota.id }}"
+                     class="boton boton-exito boton-pequeno">Cobrar</a>
+                {% else %}
+                  <a href="{% url 'ficha_credito' fila.credito.id %}"
+                     class="boton boton-neutro boton-pequeno">Ver</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  <div class="tarjeta">
+    <div class="tarjeta-cuerpo centrado" style="padding:2.2rem 1rem">
+      <div style="font-size:2.4rem">&#128197;</div>
+      <h3>Ese dia no hay cobros programados</h3>
+      <p class="texto-suave mb-0">No hay ninguna cuota con vencimiento en esta fecha.</p>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_historial %}activo{% endblock %}
+{% block titulo %}Corregir pago{% endblock %}
+{% block encabezado %}
+  Corregir pago {{ pago.recibo }}
+  <small>{{ cliente.nombre_completo }}</small>
+{% endblock %}
+{% block buscador %}{% endblock %}
+
+{% block contenido %}
+<div style="max-width:600px">
+
+  <div class="aviso-anticipo" style="background:#ffedd5;border-color:var(--naranja);color:#7c2d12">
+    <strong>&#9998; Corregir un pago</strong>
+    El pago NO se borra ni se reemplaza: se corrige el valor y la fecha, y
+    el dato anterior queda guardado en la auditoria con su motivo. Si la
+    correccion no es la solucion, use mejor la anulacion.
+  </div>
+
+  <div class="tarjeta mb-2">
+    <div class="tarjeta-cabecera">
+      <h2>Como esta el pago ahora</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <div class="resumen-linea">
+        <span class="etiqueta">Comprobante</span>
+        <span class="valor">{{ pago.recibo }}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Valor actual</span>
+        <span class="valor negrita">{% pesos pago.valor %}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Fecha actual</span>
+        <span class="valor">{% fecha pago.fecha %}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Cuota afectada</span>
+        <span class="valor">{% if pago.cuota %}#{{ pago.cuota.numero }}{% else %}Anticipo{% endif %}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Datos correctos</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <form method="post" class="formulario">
+        {% csrf_token %}
+
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.valor.id_for_label }}">{{ form.valor.label }}</label>
+            {{ form.valor }}
+            {% for error in form.valor.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.fecha.id_for_label }}">{{ form.fecha.label }}</label>
+            {{ form.fecha }}
+            {% for error in form.fecha.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+
+        <div class="grupo">
+          <label for="{{ form.motivo.id_for_label }}">{{ form.motivo.label }}</label>
+          {{ form.motivo }}
+          {% for error in form.motivo.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+        </div>
+
+        <div class="boton-fila">
+          <button type="submit" class="boton boton-alerta boton-grande">Guardar correccion</button>
+          <a href="{% url 'ficha_cliente' cliente.id %}" class="boton boton-neutro">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

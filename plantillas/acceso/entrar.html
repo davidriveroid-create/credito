@@ -1,0 +1,67 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1d4ed8">
+  <title>Entrar - {{ negocio.nombre_negocio }}</title>
+  <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+</head>
+<body>
+<div class="entrada">
+  <div class="entrada-caja">
+    <div class="entrada-cabecera">
+      {% if negocio.logo %}
+        <img src="{{ negocio.logo.url }}" alt="Logo del negocio">
+      {% endif %}
+      <h1>{{ negocio.nombre_negocio }}</h1>
+      <p>Ventas a credito y cobranza</p>
+    </div>
+
+    <div class="entrada-formulario">
+      {% if messages %}
+        <div class="mensajes">
+          {% for mensaje in messages %}
+            <div class="mensaje mensaje-{{ mensaje.tags }}">
+              <span>{% if 'error' in mensaje.tags %}&#10007;{% elif 'warning' in mensaje.tags %}&#9888;{% else %}&#8505;{% endif %}</span>
+              <span>{{ mensaje.message }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" action="{% url 'entrar' %}" autocomplete="on">
+        {% csrf_token %}
+        <input type="hidden" name="siguiente" value="{{ siguiente }}">
+
+        <div class="formulario">
+          <div class="grupo">
+            <label for="usuario">Usuario</label>
+            <input type="text" id="usuario" name="usuario" class="campo"
+                   value="{{ usuario }}" required autofocus autocapitalize="none"
+                   autocomplete="username" placeholder="Escriba su usuario">
+          </div>
+
+          <div class="grupo">
+            <label for="clave">Contrasena</label>
+            <input type="password" id="clave" name="clave" class="campo"
+                   required autocomplete="current-password" placeholder="Su contrasena">
+          </div>
+
+          <button type="submit" class="boton boton-primario boton-grande boton-bloque">
+            Iniciar sesion
+          </button>
+        </div>
+      </form>
+
+      <div class="entrada-ayuda">
+        Sistema independiente de ventas a credito.<br>
+        Si no puede entrar, avise al administrador del negocio.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>

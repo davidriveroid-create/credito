@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_pendientes %}activo{% endblock %}
+{% block titulo %}Cobros pendientes{% endblock %}
+{% block encabezado %}
+  Cobros pendientes
+  <small>{{ resumen.cantidad_vencidas }} vencida{{ resumen.cantidad_vencidas|pluralize:"s" }}
+    &middot; {% pesos resumen.total_vencido %} por cobrar</small>
+{% endblock %}
+
+{% block contenido %}
+
+<div class="rejilla-tarjetas">
+  <div class="cifra rojo">
+    <span class="etiqueta">Cuotas vencidas</span>
+    <span class="valor">{{ resumen.cantidad_vencidas }}</span>
+    <span class="nota">Clientes que ya debian pagar</span>
+  </div>
+  <div class="cifra naranja">
+    <span class="etiqueta">Valor vencido</span>
+    <span class="valor texto-dinero">{% pesos resumen.total_vencido %}</span>
+    <span class="nota">Por recuperar ya</span>
+  </div>
+  <div class="cifra">
+    <span class="etiqueta">Vencen hoy</span>
+    <span class="valor">{{ resumen.hoy|length }}</span>
+    <span class="nota">Clientes que deben pagar hoy</span>
+  </div>
+  <div class="cifra">
+    <span class="etiqueta">Proximos {{ dias }} dias</span>
+    <span class="valor">{{ resumen.proximas|length }}</span>
+    <span class="nota">Programados por cobrar</span>
+  </div>
+</div>
+
+<div class="boton-fila mb-2">
+  <a href="?vista=vencidas&amp;dias={{ dias }}"
+     class="boton {% if vista == 'vencidas' %}boton-primario{% else %}boton-neutro{% endif %}">
+    Vencidas y hoy ({{ resumen.cantidad_vencidas|add:resumen.hoy|length }})
+  </a>
+  <a href="?vista=proximas&amp;dias={{ dias }}"
+     class="boton {% if vista == 'proximas' %}boton-primario{% else %}boton-neutro{% endif %}">
+    Proximas ({{ resumen.proximas|length }})
+  </a>
+  <a href="?vista=todas&amp;dias={{ dias }}"
+     class="boton {% if vista == 'todas' %}boton-primario{% else %}boton-neutro{% endif %}">
+    Todas
+  </a>
+
+  <span style="width:12px"></span>
+
+  <a href="?vista={{ vista }}&amp;dias=0"
+     class="boton boton-pequeno {% if dias == 0 %}boton-oscuro{% else %}boton-neutro{% endif %}">Solo hoy</a>
+  <a href="?vista={{ vista }}&amp;dias=3"
+     class="boton boton-pequeno {% if dias == 3 %}boton-oscuro{% else %}boton-neutro{% endif %}">3 dias</a>
+  <a href="?vista={{ vista }}&amp;dias=7"
+     class="boton boton-pequeno {% if dias == 7 %}boton-oscuro{% else %}boton-neutro{% endif %}">7 dias</a>
+
+  <span style="flex:1"></span>
+
+  <a href="?vista={{ vista }}&amp;dias={{ dias }}&amp;inactivos=1" class="boton boton-pequeno boton-neutro">
+    {% if solo_activos %}Mostrar tambien inactivos{% else %}Solo clientes activos{% endif %}
+  </a>
+</div>
+
+{% if filas %}
+  <div class="tarjeta">
+    <div class="tabla-envoltura">
+      <table>
+        <thead>
+          <tr>
+            <th style="min-width:200px">Cliente</th>
+            <th>Contacto</th>
+            <th>Producto</th>
+            <th>Cuota</th>
+            <th class="derecha">Debe</th>
+            <th>Atraso</th>
+            <th style="min-width:150px">Regularidad</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fila in filas %}
+            <tr>
+              <td>
+                <a href="{% url 'ficha_cliente' fila.cliente.id %}">
+                  <strong>{{ fila.cliente.nombre_completo }}</strong>
+                </a>
+                <br>
+                <small class="dato-sensible">{{ fila.cliente.cedula }}</small>
+                {% if not fila.cliente.activo %}
+                  <span class="insignia gris">INACTIVO</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="tel:{{ fila.cliente.telefono }}">&#128222; {{ fila.cliente.telefono }}</a>
+                {% if fila.cliente.referencia_telefono %}
+                  <br><a href="tel:{{ fila.cliente.referencia_telefono }}" class="texto-pequeno">
+                    Ref. {{ fila.cliente.referencia_telefono }}
+                  </a>
+                {% endif %}
+              </td>
+              <td>
+                {{ fila.credito.nombre_producto|truncatechars:20 }}
+                <br><small class="texto-suave">#{{ fila.credito.id }}</small>
+              </td>
+              <td>
+                <span class="estado-cuota {% color_estado fila.estado_siguiente %}">{{ fila.cuota.numero }}</span>
+                <br><small class="texto-suave">{% fecha fila.cuota.fecha_vencimiento %}</small>
+              </td>
+              <td class="derecha texto-dinero texto-naranja">{% pesos fila.saldo_cuota %}</td>
+              <td>
+                {% if fila.estado == 'MORA' %}
+                  <span class="insignia rojo">MORA {{ fila.atraso }}d</span>
+                {% elif fila.estado == 'ATRASADO' %}
+                  <span class="insignia naranja">{{ fila.atraso }}d</span>
+                {% elif fila.estado == 'RECIEN' %}
+                  <span class="insignia amarillo">{{ fila.atraso }}d</span>
+                {% elif fila.estado == 'HOY' %}
+                  <span class="insignia azul">HOY</span>
+                {% else %}
+                  <span class="insignia verde">{{ fila.dias_faltan }}d</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="barra-regularidad" title="{{ fila.regularidad.explicacion }}">
+                  <div class="barra-relleno"
+                       style="width:{{ fila.regularidad.porcentaje }}%;background:{{ fila.regularidad.color }}"></div>
+                </div>
+                <small class="texto-suave" style="font-size:.7rem">
+                  {{ fila.regularidad.porcentaje }}% &middot; {{ fila.regularidad.etiqueta }}
+                </small>
+              </td>
+              <td class="derecha">
+                <div class="boton-fila" style="flex-wrap:nowrap;justify-content:flex-end">
+                  <a href="{% url 'registrar_pago' fila.credito.id %}?cuota={{ fila.cuota.id }}"
+                     class="boton boton-exito boton-pequeno">Cobrar</a>
+                  <a href="{% url 'ficha_cliente' fila.cliente.id %}"
+                     class="boton boton-neutro boton-pequeno">Ficha</a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if paginador.num_pages > 1 %}
+      <div class="tarjeta-pie">
+        <div class="paginacion">
+          {% if filas.has_previous %}
+            <a href="?vista={{ vista }}&amp;dias={{ dias }}&amp;pagina={{ filas.previous_page_number }}">&larr; Anterior</a>
+          {% else %}
+            <span class="inhabilitado">&larr; Anterior</span>
+          {% endif %}
+          <span>Pagina {{ filas.number }} de {{ paginador.num_pages }}</span>
+          {% if filas.has_next %}
+            <a href="?vista={{ vista }}&amp;dias={{ dias }}&amp;pagina={{ filas.next_page_number }}">Siguiente &rarr;</a>
+          {% else %}
+            <span class="inhabilitado">Siguiente &rarr;</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="tarjeta">
+    <div class="tarjeta-cuerpo centrado" style="padding:2.5rem 1rem">
+      <div style="font-size:3rem">&#127881;</div>
+      <h3>{% if vista == 'proximas' %}No hay cobros proximos{% else %}No hay cobros pendientes{% endif %}</h3>
+      <p class="texto-suave">
+        {% if vista == 'proximas' %}
+          No hay cuotas programadas para los proximos dias.
+        {% else %}
+          Todos los clientes con credito activo estan al dia. Buen trabajo.
+        {% endif %}
+      </p>
+      <a href="{% url 'calendario' %}" class="boton boton-neutro">Ver el calendario</a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

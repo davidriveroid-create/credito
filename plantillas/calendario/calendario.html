@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_calendario %}activo{% endblock %}
+{% block titulo %}Calendario de cobros{% endblock %}
+{% block encabezado %}
+  Calendario de cobros
+  <small>{{ nombre_mes }} {{ anio }} &middot; {% pesos datos.total_esperado %} programados</small>
+{% endblock %}
+
+{% block contenido %}
+
+<div class="boton-fila mb-2">
+  <a href="{% url 'calendario' %}?anio={{ anterior.year }}&amp;mes={{ anterior.month }}"
+     class="boton boton-neutro">&larr; {{ anterior.month }}/{{ anterior.year }}</a>
+  <a href="{% url 'calendario' %}?anio={{ hoy.year }}&amp;mes={{ hoy.month }}"
+     class="boton {% if anio == hoy.year and mes == hoy.month %}boton-primario{% else %}boton-neutro{% endif %}">
+    Hoy
+  </a>
+  <a href="{% url 'calendario' %}?anio={{ siguiente.year }}&amp;mes={{ siguiente.month }}"
+     class="boton boton-neutro">{{ siguiente.month }}/{{ siguiente.year }} &rarr;</a>
+
+  <span style="flex:1"></span>
+
+  <span class="insignia verde">Recibido: {% pesos datos.total_recibido %}</span>
+  <span class="insignia naranja">Pendiente: {% pesos datos.total_pendiente %}</span>
+</div>
+
+<div class="tarjeta">
+  <div class="tarjeta-cuerpo">
+    <div class="calendario">
+      {% for dia_semana in dias_semana %}
+        <div class="dia-semana">{{ dia_semana }}</div>
+      {% endfor %}
+
+      {% for fila in filas %}
+        {% for celda in fila %}
+          {% if celda %}
+            <a href="{% url 'dia_calendario' anio mes celda.numero %}"
+               class="dia {% if celda.fecha == hoy %}hoy{% endif %}{% if celda.fecha < hoy %}pasado{% endif %}"
+               title="{% fecha_larga celda.fecha %}: {{ celda.cuotas|length }} cuota(s), {% pesos celda.pendiente %} pendiente">
+              <span class="numero">{{ celda.numero }}</span>
+
+              {% if celda.cuotas %}
+                {% if celda.pendiente == 0 %}
+                  <span class="marcador" style="background:var(--verde)"></span>
+                {% elif celda.fecha < hoy %}
+                  <span class="marcador" style="background:var(--rojo)"></span>
+                {% else %}
+                  <span class="marcador" style="background:var(--azul)"></span>
+                {% endif %}
+
+                <span class="info">
+                  <strong>{% pesos celda.pendiente %}</strong>
+                  {{ celda.clientes }} cliente{{ celda.clientes|pluralize:"s" }}
+                  {% if celda.pendiente == 0 %} &middot; todo pagado{% endif %}
+                </span>
+              {% endif %}
+            </a>
+          {% else %}
+            <div class="dia vacio"></div>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+
+    <div class="leyenda" style="flex-direction:row;flex-wrap:wrap;justify-content:center">
+      <div class="leyenda-item">
+        <span class="punto" style="background:var(--verde)"></span> Todo cobrado
+      </div>
+      <div class="leyenda-item">
+        <span class="punto" style="background:var(--azul)"></span> Programado
+      </div>
+      <div class="leyenda-item">
+        <span class="punto" style="background:var(--rojo)"></span> Vencido sin cobrar
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="rejilla-3 mt-2">
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Cuotas por dia del mes</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      {% puntos_barras datos.dias.values "esperado" datos.total_esperado %}
+      <p class="texto-pequeno texto-suave centrado mb-0">
+        Pase el cursor sobre una barra para ver el total del dia.
+      </p>
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Resumen del mes</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <div class="resumen-linea">
+        <span class="etiqueta">Total programado</span>
+        <span class="valor">{% pesos datos.total_esperado %}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Total recibido</span>
+        <span class="valor texto-verde">{% pesos datos.total_recibido %}</span>
+      </div>
+      <div class="resumen-linea destacado">
+        <span class="etiqueta">Pendiente por cobrar</span>
+        <span class="valor texto-naranja">{% pesos datos.total_pendiente %}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Ir a un mes</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <form method="get" class="formulario">
+        <div class="grupo">
+          <label for="anio_r">Ano</label>
+          <input type="number" name="anio" id="anio_r" value="{{ anio }}"
+                 class="campo" min="2000" max="2100">
+        </div>
+        <div class="grupo">
+          <label for="mes_r">Mes</label>
+          <select name="mes" id="mes_r" class="campo">
+            <option value="1" {% if mes == 1 %}selected{% endif %}>Enero</option>
+            <option value="2" {% if mes == 2 %}selected{% endif %}>Febrero</option>
+            <option value="3" {% if mes == 3 %}selected{% endif %}>Marzo</option>
+            <option value="4" {% if mes == 4 %}selected{% endif %}>Abril</option>
+            <option value="5" {% if mes == 5 %}selected{% endif %}>Mayo</option>
+            <option value="6" {% if mes == 6 %}selected{% endif %}>Junio</option>
+            <option value="7" {% if mes == 7 %}selected{% endif %}>Julio</option>
+            <option value="8" {% if mes == 8 %}selected{% endif %}>Agosto</option>
+            <option value="9" {% if mes == 9 %}selected{% endif %}>Septiembre</option>
+            <option value="10" {% if mes == 10 %}selected{% endif %}>Octubre</option>
+            <option value="11" {% if mes == 11 %}selected{% endif %}>Noviembre</option>
+            <option value="12" {% if mes == 12 %}selected{% endif %}>Diciembre</option>
+          </select>
+        </div>
+        <button type="submit" class="boton boton-primario boton-bloque">Ver mes</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

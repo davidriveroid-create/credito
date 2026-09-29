@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_historial %}activo{% endblock %}
+{% block titulo %}Anular pago{% endblock %}
+{% block encabezado %}
+  Anular pago {{ pago.recibo }}
+  <small>{{ cliente.nombre_completo }}</small>
+{% endblock %}
+{% block buscador %}{% endblock %}
+
+{% block contenido %}
+<div style="max-width:600px">
+
+  <div class="aviso-anticipo">
+    <strong>&#9888; El pago no se va a borrar</strong>
+    Se va a marcar como ANULADO. El registro completo queda guardado en el
+    historial de movimientos con su valor, fecha y el motivo que usted
+    escriba. Los saldos se recalculan de inmediato. Esto sirve para que
+    quede constancia de lo que ocurrio.
+  </div>
+
+  <div class="tarjeta mb-2">
+    <div class="tarjeta-cabecera">
+      <h2>Pago que se va a anular</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <div class="resumen-linea">
+        <span class="etiqueta">Comprobante</span>
+        <span class="valor">{{ pago.recibo }}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Fecha y hora</span>
+        <span class="valor">{% momento pago.fecha pago.hora %}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Cliente</span>
+        <span class="valor">{{ cliente.nombre_completo }}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Credito</span>
+        <span class="valor">#{{ pago.credito.id }} &middot; {{ pago.credito.nombre_producto }}</span>
+      </div>
+      {% if pago.cuota %}
+        <div class="resumen-linea">
+          <span class="etiqueta">Cuota</span>
+          <span class="valor">#{{ pago.cuota.numero }}</span>
+        </div>
+      {% endif %}
+      <div class="resumen-linea">
+        <span class="etiqueta">Valor</span>
+        <span class="valor negrita texto-grande">{% pesos pago.valor %}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Metodo</span>
+        <span class="valor">{{ pago.metodo }}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Registrado por</span>
+        <span class="valor">{{ pago.usuario.get_username }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Motivo de la anulacion</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <form method="post" class="formulario">
+        {% csrf_token %}
+        <div class="grupo">
+          <label for="{{ form.motivo.id_for_label }}">{{ form.motivo.label }}</label>
+          {{ form.motivo }}
+          <span class="ayuda">Queda guardado para siempre en la auditoria.</span>
+          {% for error in form.motivo.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+        </div>
+
+        <div class="boton-fila">
+          <button type="submit" class="boton boton-peligro boton-grande"
+                  data-confirmar="Va a anular este pago de {% pesos pago.valor %}. Los saldos cambiaran. Confirmar?">
+            Anular este pago
+          </button>
+          <a href="{% url 'ficha_cliente' cliente.id %}" class="boton boton-neutro">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

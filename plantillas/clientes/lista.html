@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_clientes %}activo{% endblock %}
+{% block titulo %}Clientes - {{ negocio.nombre_negocio }}{% endblock %}
+{% block encabezado %}
+  Clientes
+  <small>{{ total }} cliente{{ total|pluralize }} en total</small>
+{% endblock %}
+
+{% block acciones_cabecera %}
+  <a href="{% url 'nuevo_cliente' %}" class="boton boton-primario">+ Nuevo cliente</a>
+{% endblock %}
+
+{% block contenido %}
+
+<form method="get" class="filtros">
+  <div class="grupo" style="flex:1;min-width:220px">
+    <label for="q">Buscar</label>
+    <input type="search" id="q" name="q" class="campo" value="{{ q }}"
+           placeholder="Nombre, apellido o numero de cedula">
+  </div>
+
+  <div class="grupo">
+    <label for="estado">Mostrar</label>
+    <select name="estado" id="estado" class="campo" data-filtro-auto>
+      <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Todos</option>
+      <option value="activos" {% if estado == 'activos' %}selected{% endif %}>Solo activos</option>
+      <option value="inactivos" {% if estado == 'inactivos' %}selected{% endif %}>Solo inactivos</option>
+      <option value="con_deuda" {% if estado == 'con_deuda' %}selected{% endif %}>Con credito pendiente</option>
+      <option value="al_dia" {% if estado == 'al_dia' %}selected{% endif %}>Al dia</option>
+      <option value="atrasados" {% if estado == 'atrasados' %}selected{% endif %}>Atrasados</option>
+    </select>
+  </div>
+
+  <div class="grupo">
+    <label for="orden">Ordenar por</label>
+    <select name="orden" id="orden" class="campo" data-filtro-auto>
+      <option value="nombre" {% if orden == 'nombre' %}selected{% endif %}>Nombre</option>
+      <option value="deuda" {% if orden == 'deuda' %}selected{% endif %}>Mayor deuda</option>
+      <option value="recientes" {% if orden == 'recientes' %}selected{% endif %}>Mas recientes</option>
+    </select>
+  </div>
+
+  <button type="submit" class="boton boton-primario">Filtrar</button>
+  {% if q or estado != 'todos' %}
+    <a href="{% url 'clientes' %}" class="boton boton-neutro">Limpiar</a>
+  {% endif %}
+</form>
+
+{% if filas %}
+  <div class="tarjeta">
+    <div class="tabla-envoltura">
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Cedula</th>
+            <th>Telefono</th>
+            <th style="min-width:190px">Regularidad de pago</th>
+            <th>Estado</th>
+            <th class="derecha">Vencido</th>
+            <th class="centro">Creditos</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fila in filas %}
+            <tr>
+              <td>
+                <a href="{% url 'ficha_cliente' fila.cliente.id %}">
+                  <strong>{{ fila.cliente.nombre_completo }}</strong>
+                </a>
+                <br>
+                <small class="texto-suave">
+                  {{ fila.cliente.ciudad }}{% if fila.cliente.barrio %}, {{ fila.cliente.barrio }}{% endif %}
+                  {% if not fila.cliente.activo %} &middot; <span class="texto-rojo">INACTIVO</span>{% endif %}
+                </small>
+              </td>
+              <td><span class="dato-sensible">{{ fila.cliente.cedula }}</span></td>
+              <td>{{ fila.cliente.telefono }}</td>
+              <td>
+                <div class="barra-regularidad" title="{{ fila.regularidad.explicacion }}">
+                  <div class="barra-relleno"
+                       style="width:{{ fila.regularidad.porcentaje }}%;background:{{ fila.regularidad.color }}"></div>
+                </div>
+                <div class="barra-detalle">
+                  <span class="barra-texto">{{ fila.regularidad.barra }}</span>
+                  <span class="barra-valor">{{ fila.regularidad.porcentaje }}%</span>
+                </div>
+                <small class="texto-suave" style="font-size:.7rem">
+                  {{ fila.regularidad.a_tiempo }} a tiempo
+                  {% if fila.regularidad.con_retraso %} &middot; {{ fila.regularidad.con_retraso }} tarde{% endif %}
+                  {% if fila.regularidad.vencidas %} &middot; {{ fila.regularidad.vencidas }} vencida{{ fila.regularidad.vencidas|pluralize:"s" }}{% endif %}
+                </small>
+              </td>
+              <td>
+                <span class="insignia"
+                      style="background:{{ fila.regularidad.color }}22;color:{{ fila.regularidad.color }}">
+                  {{ fila.regularidad.etiqueta }}
+                </span>
+                <br>
+                <small class="texto-suave" style="font-size:.7rem">
+                  {{ fila.regularidad.explicacion|truncatechars:46 }}
+                </small>
+              </td>
+              <td class="derecha">
+                {% if fila.regularidad.valor_vencido > 0 %}
+                  <strong class="texto-rojo">{% pesos fila.regularidad.valor_vencido %}</strong>
+                {% else %}
+                  <span class="texto-suave">sin atraso</span>
+                {% endif %}
+              </td>
+              <td class="centro">{{ fila.cliente.n_creditos }}</td>
+              <td class="derecha">
+                <div class="boton-fila" style="flex-wrap:nowrap">
+                  {% if fila.estado_cliente == 'MORA' or fila.regularidad.vencidas > 0 %}
+                    <a href="{% url 'cobrar_cliente' fila.cliente.id %}" class="boton boton-exito boton-pequeno">Cobrar</a>
+                  {% endif %}
+                  <a href="{% url 'ficha_cliente' fila.cliente.id %}" class="boton boton-neutro boton-pequeno">Ver</a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if paginador.num_pages > 1 %}
+      <div class="tarjeta-pie">
+        <div class="paginacion">
+          {% if pagina_obj.has_previous %}
+            <a href="?q={{ q }}&amp;estado={{ estado }}&amp;orden={{ orden }}&amp;pagina={{ pagina_obj.previous_page_number }}">&larr; Anterior</a>
+          {% else %}
+            <span class="inhabilitado">&larr; Anterior</span>
+          {% endif %}
+
+          {% for numero in paginador.page_range %}
+            {% if numero == pagina_obj.number %}
+              <span class="actual">{{ numero }}</span>
+            {% elif numero >= pagina_obj.number|add:"-2" and numero <= pagina_obj.number|add:"2" %}
+              <a href="?q={{ q }}&amp;estado={{ estado }}&amp;orden={{ orden }}&amp;pagina={{ numero }}">{{ numero }}</a>
+            {% endif %}
+          {% endfor %}
+
+          {% if pagina_obj.has_next %}
+            <a href="?q={{ q }}&amp;estado={{ estado }}&amp;orden={{ orden }}&amp;pagina={{ pagina_obj.next_page_number }}">Siguiente &rarr;</a>
+          {% else %}
+            <span class="inhabilitado">Siguiente &rarr;</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="tarjeta">
+    <div class="tarjeta-cuerpo centrado" style="padding:2.5rem 1rem">
+      <div style="font-size:2.6rem">&#128101;</div>
+      {% if q %}
+        <h3>No se encontro ningun cliente</h3>
+        <p class="texto-suave">Ningun cliente coincide con "{{ q }}".</p>
+        <a href="{% url 'clientes' %}" class="boton boton-neutro">Ver todos los clientes</a>
+      {% else %}
+        <h3>Todavia no hay clientes</h3>
+        <p class="texto-suave">Empiece registrando el primer cliente al que le venda a credito.</p>
+        <a href="{% url 'nuevo_cliente' %}" class="boton boton-primario boton-grande">
+          + Registrar primer cliente
+        </a>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

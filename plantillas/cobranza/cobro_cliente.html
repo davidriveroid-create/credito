@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_cobrar %}activo{% endblock %}
+{% block titulo %}Cobrar a {{ cliente.nombre_completo }}{% endblock %}
+{% block encabezado %}
+  {{ cliente.nombre_completo }}
+  <small>Elija el credito que le va a cobrar</small>
+{% endblock %}
+{% block buscador %}{% endblock %}
+
+{% block contenido %}
+<div class="rejilla-2" style="grid-template-columns:1fr 320px">
+
+  <div>
+    {% if creditos %}
+      <div class="tarjeta">
+        <div class="tarjeta-cabecera">
+          <h2>Creditos activos de {{ cliente.nombre_corto }}</h2>
+        </div>
+
+        {% for info in creditos %}
+          {% with c=info.credito %}
+            <div class="tarjeta-pie" style="border-top:none;border-bottom:1px solid var(--borde)">
+              <div class="boton-fila" style="align-items:flex-start;flex-wrap:nowrap">
+                <div style="flex:1;min-width:0">
+                  <strong>{{ c.nombre_producto }}</strong>
+                  <span class="texto-pequeno texto-suave">#{{ c.id }}</span>
+                  <br>
+                  <small class="texto-suave">
+                    {{ c.frecuencia.nombre }} &middot; {{ c.numero_cuotas }} cuotas
+                    &middot; vence {% fecha c.fecha_primera_cuota %}
+                  </small>
+                  <br>
+                  {% if info.siguiente %}
+                    <span class="estado-cuota {% color_estado info.estado_siguiente %}">
+                      Cuota {{ info.siguiente.numero }}: {% nombre_estado info.estado_siguiente %}
+                    </span>
+                    <small class="texto-suave">
+                      &middot; {% fecha info.siguiente.fecha_vencimiento %}
+                      {% if info.atraso > 0 %}
+                        &middot; <span class="texto-rojo">{{ info.atraso }}d atraso</span>
+                      {% endif %}
+                      &middot; faltan {{ info.cuotas_pendientes }} cuota{{ info.cuotas_pendientes|pluralize:"s" }}
+                    </small>
+                    <br>
+                    <span class="negrita">
+                      Saldo: {% pesos c.saldo %}
+                      &middot; cuota a cobrar: <span class="texto-naranja">{% pesos info.siguiente.saldo %}</span>
+                    </span>
+                  {% endif %}
+                </div>
+
+                <a href="{% url 'registrar_pago' c.id %}" class="boton boton-exito boton-grande">Cobrar</a>
+              </div>
+            </div>
+          {% endwith %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="tarjeta">
+        <div class="tarjeta-cuerpo centrado" style="padding:2.2rem 1rem">
+          <div style="font-size:2.4rem">&#128179;</div>
+          <h3>Este cliente no tiene creditos activos</h3>
+          <p class="texto-suave">
+            {% if resumen.creditos_pagados > 0 %}
+              Ya pago todo lo que debia ({{ resumen.creditos_pagados }} credito{{ resumen.creditos_pagados|pluralize:"s" }} terminado{{ resumen.creditos_pagados|pluralize:"s" }}).
+              Puede darle otro credito nuevo.
+            {% else %}
+              Todavia no se le ha vendido nada a credito.
+            {% endif %}
+          </p>
+          <a href="{% url 'nuevo_credito' %}?cliente={{ cliente.id }}" class="boton boton-primario boton-grande">
+            + Crear un credito nuevo
+          </a>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3>Datos del cliente</h3>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="resumen-linea">
+          <span class="etiqueta">Nombre</span>
+          <span class="valor">{{ cliente.nombre_completo }}</span>
+        </div>
+        <div class="resumen-linea">
+          <span class="etiqueta">Cedula</span>
+          <span class="valor dato-sensible">{{ cliente.cedula }}</span>
+        </div>
+        <div class="resumen-linea">
+          <span class="etiqueta">Telefono</span>
+          <span class="valor"><a href="tel:{{ cliente.telefono }}">{{ cliente.telefono }}</a></span>
+        </div>
+        {% if cliente.referencia_nombre %}
+          <div class="resumen-linea">
+            <span class="etiqueta">Referencia</span>
+            <span class="valor">
+              {{ cliente.referencia_nombre }}<br>
+              <a href="tel:{{ cliente.referencia_telefono }}">{{ cliente.referencia_telefono }}</a>
+            </span>
+          </div>
+        {% endif %}
+        <div class="resumen-linea destacado">
+          <span class="etiqueta">Saldo total</span>
+          <span class="valor {% if resumen.saldo > 0 %}texto-naranja{% endif %}">{% pesos resumen.saldo %}</span>
+        </div>
+        <div class="resumen-linea">
+          <span class="etiqueta">Regularidad</span>
+          <span class="valor" style="color:{{ regularidad.color }}">
+            {{ regularidad.porcentaje }}% &middot; {{ regularidad.etiqueta }}
+          </span>
+        </div>
+        {% if regularidad.valor_vencido > 0 %}
+          <div class="resumen-linea">
+            <span class="etiqueta">Vencido</span>
+            <span class="valor texto-rojo">{% pesos regularidad.valor_vencido %}</span>
+          </div>
+        {% endif %}
+      </div>
+      <div class="tarjeta-pie">
+        <a href="{% url 'ficha_cliente' cliente.id %}" class="boton boton-neutro boton-bloque boton-pequeno">
+          Abrir ficha completa
+        </a>
+      </div>
+    </div>
+
+    {% if ultimos_pagos %}
+      <div class="tarjeta mt-2">
+        <div class="tarjeta-cabecera">
+          <h3>Ultimos pagos</h3>
+        </div>
+        <div class="tarjeta-cuerpo">
+          <ul class="lista-simple">
+            {% for pago in ultimos_pagos %}
+              <li>
+                <span class="texto-pequeno">{% fecha pago.fecha %}</span>
+                <div style="flex:1">
+                  <strong>{% pesos pago.valor %}</strong>
+                  <small class="texto-suave" style="display:block;font-size:.72rem">
+                    {{ pago.metodo }} &middot; Rec. {{ pago.recibo }}
+                  </small>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

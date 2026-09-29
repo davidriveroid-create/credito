@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_historial %}activo{% endblock %}
+{% block titulo %}Historial de pagos{% endblock %}
+{% block encabezado %}
+  Historial de pagos
+  <small>{{ total }} pago{{ total|pluralize:"s" }} &middot; {% pesos total_valor %} cobrados</small>
+{% endblock %}
+
+{% block contenido %}
+
+<form method="get" class="filtros">
+  <div class="grupo" style="flex:1;min-width:200px">
+    <label for="q">Buscar</label>
+    <input type="search" id="q" name="q" class="campo" value="{{ q }}"
+           placeholder="Comprobante, cliente, cedula o referencia">
+  </div>
+  <div class="grupo">
+    <label for="desde">Desde</label>
+    <input type="date" id="desde" name="desde" class="campo" value="{{ desde }}">
+  </div>
+  <div class="grupo">
+    <label for="hasta">Hasta</label>
+    <input type="date" id="hasta" name="hasta" class="campo" value="{{ hasta }}">
+  </div>
+  <div class="grupo">
+    <label for="metodo">Metodo</label>
+    <select name="metodo" id="metodo" class="campo" data-filtro-auto>
+      <option value="">Todos</option>
+      {% for m in metodos %}
+        <option value="{{ m.id }}" {% if metodo == m.id|stringformat:"s" %}selected{% endif %}>
+          {{ m.nombre }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="grupo">
+    <label for="estado">Estado</label>
+    <select name="estado" id="estado" class="campo" data-filtro-auto>
+      <option value="vigentes" {% if estado == 'vigentes' %}selected{% endif %}>Solo vigentes</option>
+      <option value="anulados" {% if estado == 'anulados' %}selected{% endif %}>Solo anulados</option>
+      <option value="" {% if not estado %}selected{% endif %}>Todos</option>
+    </select>
+  </div>
+  <button type="submit" class="boton boton-primario">Filtrar</button>
+  <a href="{% url 'historial_pagos' %}" class="boton boton-neutro">Limpiar</a>
+</form>
+
+<div class="boton-fila mb-1">
+  <button type="button" class="boton boton-pequeno boton-neutro" data-rango="hoy">Hoy</button>
+  <button type="button" class="boton boton-pequeno boton-neutro" data-rango="7">Ultimos 7 dias</button>
+  <button type="button" class="boton boton-pequeno boton-neutro" data-rango="30">Ultimos 30 dias</button>
+  <button type="button" class="boton boton-pequeno boton-neutro" data-rango="mes">Este mes</button>
+</div>
+
+{% if pagos %}
+  <div class="tarjeta">
+    <div class="tabla-envoltura">
+      <table class="tabla-mini">
+        <thead>
+          <tr>
+            <th>Comprobante</th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Producto / Cuota</th>
+            <th class="derecha">Valor</th>
+            <th>Metodo</th>
+            <th class="derecha">Saldo despues</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pago in pagos %}
+            <tr {% if pago.anulado %}style="opacity:.6"{% endif %}>
+              <td><a href="{% url 'comprobante' pago.id %}">{{ pago.recibo }}</a></td>
+              <td>
+                {% fecha pago.fecha %}
+                <br><small class="texto-suave">{% reloj pago.hora %}</small>
+              </td>
+              <td>
+                <a href="{% url 'ficha_cliente' pago.credito.cliente.id %}">
+                  {{ pago.credito.cliente.nombre_corto }}
+                </a>
+                <br><small class="texto-suave">{{ pago.credito.cliente.cedula }}</small>
+              </td>
+              <td>
+                {{ pago.credito.nombre_producto|truncatechars:20 }}
+                <br><small class="texto-suave">
+                  {% if pago.cuota %}Cuota {{ pago.cuota.numero }}{% else %}Anticipo{% endif %}
+                  &middot; #{{ pago.credito.id }}
+                </small>
+              </td>
+              <td class="derecha texto-dinero">{% pesos pago.valor %}</td>
+              <td>
+                {{ pago.metodo }}
+                {% if pago.referencia %}
+                  <br><small class="texto-suave">{{ pago.referencia }}</small>
+                {% endif %}
+              </td>
+              <td class="derecha texto-dinero">{% pesos pago.saldo_despues %}</td>
+              <td>
+                {% if pago.anulado %}
+                  <span class="insignia rojo">ANULADO</span>
+                {% else %}
+                  <span class="insignia verde">VIGENTE</span>
+                {% endif %}
+              </td>
+              <td class="derecha">
+                <a href="{% url 'comprobante' pago.id %}" class="boton boton-pequeno boton-neutro">Ver</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if paginador.num_pages > 1 %}
+      <div class="tarjeta-pie">
+        <div class="paginacion">
+          {% if pagos.has_previous %}
+            <a href="?q={{ q }}&amp;desde={{ desde }}&amp;hasta={{ hasta }}&amp;metodo={{ metodo }}&amp;estado={{ estado }}&amp;pagina={{ pagos.previous_page_number }}">&larr; Anterior</a>
+          {% else %}
+            <span class="inhabilitado">&larr; Anterior</span>
+          {% endif %}
+          <span>Pagina {{ pagos.number }} de {{ paginador.num_pages }}</span>
+          {% if pagos.has_next %}
+            <a href="?q={{ q }}&amp;desde={{ desde }}&amp;hasta={{ hasta }}&amp;metodo={{ metodo }}&amp;estado={{ estado }}&amp;pagina={{ pagos.next_page_number }}">Siguiente &rarr;</a>
+          {% else %}
+            <span class="inhabilitado">Siguiente &rarr;</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="tarjeta">
+    <div class="tarjeta-cuerpo centrado" style="padding:2.2rem 1rem">
+      <div style="font-size:2.4rem">&#128203;</div>
+      <h3>No hay pagos para mostrar</h3>
+      <p class="texto-suave">
+        {% if q or desde or hasta %}Ningun pago coincide con el filtro.<br>{% endif %}
+        Los pagos se registran desde el boton "Registrar pago".
+      </p>
+      <a href="{% url 'cobrar' %}" class="boton boton-primario">Ir a registrar un pago</a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

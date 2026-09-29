@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_clientes %}activo{% endblock %}
+{% block titulo %}Cedula de {{ cliente.nombre_completo }}{% endblock %}
+{% block encabezado %}
+  Foto de la cedula
+  <small>{{ cliente.nombre_completo }} &middot; Cedula {% cedula_oculta cliente.cedula %}</small>
+{% endblock %}
+{% block buscador %}{% endblock %}
+
+{% block acciones_cabecera %}
+  <a href="{% url 'ficha_cliente' cliente.id %}" class="boton boton-neutro">Volver al cliente</a>
+{% endblock %}
+
+{% block contenido %}
+<div style="max-width:760px">
+
+  <div class="aviso-anticipo" style="background:#dbeafe;border-color:var(--azul-claro);color:#1e3a8a">
+    <strong>&#128274; Estas fotos son privadas</strong>
+    Solo se ven desde este sistema y unicamente por usuarios que hayan
+    iniciado sesion. No tienen una direccion publica: si alguien copia el
+    enlace de la foto sin estar conectado, no podra abrirla.
+  </div>
+
+  <div class="tarjeta mb-2">
+    <div class="tarjeta-cabecera">
+      <h2>Fotos que tiene guardadas</h2>
+      <span class="texto-pequeno texto-suave">{{ documentos|length }} de 2 partes</span>
+    </div>
+
+    {% if documentos %}
+      <div class="tarjeta-cuerpo">
+        <div class="fotos-cedula">
+          {% for documento in documentos %}
+            <div class="foto-cedula">
+              <img src="{% url 'ver_documento' documento.id %}"
+                   alt="{{ documento.get_tipo_display }}"
+                   data-ampliar="{% url 'ver_documento' documento.id %}"
+                   loading="lazy">
+              <div class="pie">
+                <span>
+                  <strong>{{ documento.get_tipo_display }}</strong><br>
+                  <small class="texto-suave">{% fecha documento.fecha_subida %}</small>
+                </span>
+                {% if es_administrador %}
+                  <form method="post" action="{% url 'eliminar_documento' documento.id %}"
+                        data-confirmar="&#191;Eliminar esta foto de la cedula?">
+                    {% csrf_token %}
+                    <button type="submit" class="boton boton-peligro boton-pequeno">Quitar</button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <div class="tarjeta-cuerpo centrado">
+        <div style="font-size:2.4rem">&#128247;</div>
+        <p class="negrita">Todavia no hay fotos de la cedula</p>
+        <p class="texto-suave texto-pequeno">
+          Tomele una foto al frente y otra al reverso. Serviran como respaldo
+          de la identidad del cliente.
+        </p>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Subir una foto</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <form method="post" enctype="multipart/form-data" class="formulario">
+        {% csrf_token %}
+
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+            {{ form.tipo }}
+            {% for error in form.tipo.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.archivo.id_for_label }}">Foto</label>
+            {{ form.archivo }}
+            <div class="camara-nota">
+              &#128247; En el celular, este boton abre la camara directo.
+              En computador, puede elegir un archivo.
+            </div>
+            {% for error in form.archivo.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+
+        <div class="boton-fila">
+          <button type="submit" class="boton boton-primario">Guardar foto</button>
+          <a href="{% url 'ficha_cliente' cliente.id %}" class="boton boton-neutro">Volver</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="tarjeta mt-2">
+    <div class="tarjeta-cuerpo">
+      <div class="tarjeta-mini">
+        <span class="titulo">&#128274; Acerca de la privacidad</span>
+        Las fotos de identificacion son informacion sensible de sus clientes.
+        Este sistema las guarda aparte de la base de datos, en una carpeta
+        que no se publica en internet, y solo se muestran a usuarios que
+        hayan iniciado sesion. No se comparten con ningun otro programa
+        instalado en este computador.
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

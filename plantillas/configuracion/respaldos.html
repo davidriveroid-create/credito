@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_respaldos %}activo{% endblock %}
+{% block titulo %}Respaldos{% endblock %}
+{% block buscador %}{% endblock %}
+{% block encabezado %}
+  Respaldos de la base de datos
+  <small>{{ total_datos.clientes }} clientes &middot; {{ total_datos.creditos }} creditos &middot; {{ total_datos.pagos }} pagos</small>
+{% endblock %}
+
+{% block contenido %}
+<div class="rejilla-50">
+
+  <div>
+    <div class="tarjeta mb-2">
+      <div class="tarjeta-cabecera">
+        <h2>Hacer un respaldo ahora</h2>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <p class="texto-suave texto-medio">
+          Se guarda una copia completa de la base de datos en la carpeta
+          <code>respaldos/</code> dentro de la carpeta del programa. Puede
+          hacerlo cada semana o cada noche desde el programador de tareas
+          de Windows.
+        </p>
+
+        <div class="tarjeta-mini mb-2">
+          <span class="titulo">&#128190; Que se copia</span>
+          Clientes, cedulas, creditos, cuotas, pagos, historial y
+          configuracion. Todo lo que hay en el sistema.
+        </div>
+
+        <form method="post" action="{% url 'crear_respaldo' %}">
+          {% csrf_token %}
+          <button type="submit" class="boton boton-primario boton-grande boton-bloque">
+            &#128190; Crear respaldo ahora
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Respaldos existentes</h2>
+        <span class="texto-pequeno texto-suave">{{ respaldos|length }} archivo(s)</span>
+      </div>
+
+      {% if respaldos %}
+        <div class="tabla-envoltura">
+          <table class="tabla-mini">
+            <thead>
+              <tr>
+                <th>Archivo</th>
+                <th>Fecha</th>
+                <th class="derecha">Tamano</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in respaldos %}
+                <tr>
+                  <td><code>{{ item.nombre }}</code></td>
+                  <td>
+                    {% momento item.fecha %}
+                    <br><small class="texto-suave">{% relativo item.fecha %}</small>
+                  </td>
+                  <td class="derecha">{{ item.tamaño|filesizeformat }}</td>
+                  <td class="derecha">
+                    <div class="boton-fila" style="flex-wrap:nowrap;justify-content:flex-end">
+                      <a href="{% url 'descargar_respaldo' item.nombre %}"
+                         class="boton boton-pequeno boton-neutro">Bajar</a>
+                      <form method="post" action="{% url 'restaurar_respaldo' item.nombre %}"
+                            data-confirmar="Va a RESTAURAR este respaldo. Los datos actuales se reemplazaran (primero se guardara una copia por si acaso). Continuar?">
+                        {% csrf_token %}
+                        <input type="hidden" name="confirmar" value="SI">
+                        <button type="submit" class="boton boton-pequeno boton-alerta">Restaurar</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="tarjeta-cuerpo centrado">
+          <div style="font-size:2.4rem">&#128190;</div>
+          <h3>Todavia no hay respaldos</h3>
+          <p class="texto-suave">
+            Cree el primero con el boton de arriba. Se recomienda hacer uno
+            cada semana como minimo.
+          </p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3>Informacion del sistema</h3>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="resumen-linea">
+          <span class="etiqueta">Base de datos</span>
+          <span class="valor" style="font-size:.75rem;word-break:break-all">
+            {{ database|default:"-" }}
+          </span>
+        </div>
+        <div class="resumen-linea">
+          <span class="etiqueta">Clientes</span>
+          <span class="valor">{{ total_datos.clientes }}</span>
+        </div>
+        <div class="resumen-linea">
+          <span class="etiqueta">Creditos</span>
+          <span class="valor">{{ total_datos.creditos }}</span>
+        </div>
+        <div class="resumen-linea">
+          <span class="etiqueta">Pagos vigentes</span>
+          <span class="valor">{{ total_datos.pagos }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta mt-2">
+      <div class="tarjeta-cuerpo">
+        <div class="tarjeta-mini">
+          <span class="titulo">&#128190; Recomendaciones</span>
+          1. Haga un respaldo cada semana.<br>
+          2. Copie la carpeta <code>respaldos/</code> a una memoria USB o
+             a la nube, por si se daña el computador.<br>
+          3. Si el sistema dice que un saldo no cuadra, corra:<br><br>
+          <code style="font-size:.75rem">.venv\Scripts\python.exe manage.py revisar_saldos --corregir</code>
+          <br><br>
+          Ese comando revisa todos los creditos y ajusta lo que este mal.
+          Nunca borra pagos.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

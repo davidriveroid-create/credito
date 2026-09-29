@@ -1,0 +1,144 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1d4ed8">
+  <title>{% block titulo %}{{ negocio.nombre_negocio }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+</head>
+<body>
+<div class="app">
+
+  <aside class="lateral" id="lateral">
+    <div class="lateral-marca">
+      {% if negocio.logo %}
+        <img src="{{ negocio.logo.url }}" alt="Logo del negocio">
+      {% endif %}
+      <div class="texto">
+        <strong>{{ negocio.nombre_negocio }}</strong>
+        <small>Ventas a credito y cobranza</small>
+      </div>
+    </div>
+
+    <nav class="menu">
+      <a href="{% url 'dashboard' %}" class="{% block activo_dashboard %}{% endblock %}">
+        <span class="icono">&#9632;</span> Panel
+      </a>
+
+      <div class="menu-titulo">Cartera</div>
+
+      <a href="{% url 'clientes' %}" class="{% block activo_clientes %}{% endblock %}">
+        <span class="icono">&#128101;</span> Clientes
+      </a>
+      <a href="{% url 'creditos' %}" class="{% block activo_creditos %}{% endblock %}">
+        <span class="icono">&#128179;</span> Creditos
+      </a>
+      <a href="{% url 'cobros_pendientes' %}" class="{% block activo_pendientes %}{% endblock %}">
+        <span class="icono">&#128308;</span> Cobros pendientes
+      </a>
+      <a href="{% url 'calendario' %}" class="{% block activo_calendario %}{% endblock %}">
+        <span class="icono">&#128197;</span> Calendario
+      </a>
+
+      <div class="menu-titulo">Cobranza</div>
+
+      <a href="{% url 'cobrar' %}" class="{% block activo_cobrar %}{% endblock %}">
+        <span class="icono">&#128179;</span> Registrar pago
+      </a>
+      <a href="{% url 'historial_pagos' %}" class="{% block activo_historial %}{% endblock %}">
+        <span class="icono">&#128203;</span> Historial de pagos
+      </a>
+
+      <div class="menu-titulo">Analisis</div>
+
+      <a href="{% url 'reportes' %}" class="{% block activo_reportes %}{% endblock %}">
+        <span class="icono">&#128200;</span> Reportes
+      </a>
+
+      {% if es_administrador %}
+        <div class="menu-titulo">Administracion</div>
+        <a href="{% url 'ajustes' %}" class="{% block activo_config %}{% endblock %}">
+          <span class="icono">&#9881;</span> Configuracion
+        </a>
+        <a href="{% url 'usuarios' %}" class="{% block activo_usuarios %}{% endblock %}">
+          <span class="icono">&#128101;</span> Usuarios
+        </a>
+        <a href="{% url 'respaldos' %}" class="{% block activo_respaldos %}{% endblock %}">
+          <span class="icono">&#128190;</span> Respaldos
+        </a>
+        <a href="{% url 'historial' %}" class="{% block activo_auditoria %}{% endblock %}">
+          <span class="icono">&#128203;</span> Auditoria
+        </a>
+      {% endif %}
+    </nav>
+
+    <div class="lateral-pie">
+      <span class="usuario">{{ request.user.get_full_name|default:request.user.username }}</span>
+      {% if request.user.perfil %}
+        <span>{{ request.user.perfil.get_rol_display }}</span>
+      {% endif %}
+      <div style="margin-top:.5rem">
+        <a href="{% url 'cambiar_clave' %}" style="color:#94a3b8;font-size:.75rem">Cambiar contrasena</a>
+      </div>
+      <form method="post" action="{% url 'salir' %}" style="margin-top:.4rem">
+        {% csrf_token %}
+        <button type="submit" class="boton boton-neutro boton-pequeno boton-bloque"
+                style="background:#1e293b;color:#cbd5e1;border-color:#334155">
+          Cerrar sesion
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="tapa-menu" id="tapa-menu"></div>
+
+  <div class="principal">
+    <header class="cabecera">
+      <button class="boton-menu" id="boton-menu" aria-label="Abrir menu">&#9776;</button>
+
+      <h1>{% block encabezado %}Panel{% endblock %}</h1>
+
+      {% block buscador %}
+      <div class="buscador">
+        <span class="lupa">&#128269;</span>
+        <input type="search" id="busqueda-global" placeholder="Buscar cliente por nombre o cedula..."
+               autocomplete="off" aria-label="Buscar cliente">
+        <div class="resultados" id="resultados-busqueda"></div>
+      </div>
+      {% endblock %}
+
+      {% block acciones_cabecera %}{% endblock %}
+    </header>
+
+    <main class="contenido">
+      {% if messages %}
+        <div class="mensajes">
+          {% for mensaje in messages %}
+            <div class="mensaje mensaje-{{ mensaje.tags }}">
+              <span>{% if 'error' in mensaje.tags %}&#10007;{% elif 'warning' in mensaje.tags %}&#9888;{% elif 'success' in mensaje.tags %}&#10003;{% else %}&#8505;{% endif %}</span>
+              <span>{{ mensaje.message }}</span>
+              <button class="cerrar" aria-label="Cerrar">&times;</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% block contenido %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<script src="{% static 'js/app.js' %}"></script>
+<script>
+  // Modo sin conexion: guarda en el navegador la estructura de las
+  // pantallas ya vistas. Los datos de clientes NUNCA se guardan aqui.
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("{% static 'js/sin-conexion.js' %}")
+        .catch(function () { });
+    });
+  }
+</script>
+</body>
+</html>

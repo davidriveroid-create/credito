@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_auditoria %}activo{% endblock %}
+{% block titulo %}Auditoria{% endblock %}
+{% block buscador %}{% endblock %}
+{% block encabezado %}
+  Auditoria del sistema
+  <small>Quien hizo que y cuando</small>
+{% endblock %}
+
+{% block contenido %}
+
+<form method="get" class="filtros">
+  <div class="grupo" style="flex:1;min-width:200px">
+    <label for="q">Buscar</label>
+    <input type="search" id="q" name="q" class="campo" value="{{ q }}"
+           placeholder="Descripcion o nombre del cliente">
+  </div>
+  <div class="grupo">
+    <label for="tipo">Tipo de movimiento</label>
+    <select name="tipo" id="tipo" class="campo" data-filtro-auto>
+      <option value="">Todos</option>
+      {% for valor, texto in tipos %}
+        <option value="{{ valor }}" {% if tipo == valor %}selected{% endif %}>{{ texto }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="grupo">
+    <label for="usuario">Usuario</label>
+    <select name="usuario" id="usuario" class="campo" data-filtro-auto>
+      <option value="">Todos</option>
+      {% for u in usuarios %}
+        <option value="{{ u.id }}" {% if usuario_id == u.id|stringformat:"s" %}selected{% endif %}>
+          {{ u.get_username }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="boton boton-primario">Filtrar</button>
+  <a href="{% url 'historial' %}" class="boton boton-neutro">Limpiar</a>
+</form>
+
+<div class="tarjeta">
+  {% if movimientos %}
+    <div class="tabla-envoltura">
+      <table class="tabla-mini">
+        <thead>
+          <tr>
+            <th>Fecha y hora</th>
+            <th>Usuario</th>
+            <th>Tipo</th>
+            <th>Que ocurrio</th>
+            <th>Cliente</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for movimiento in movimientos %}
+            <tr>
+              <td>
+                {% momento movimiento.fecha %}
+                <br><small class="texto-suave">{% relativo movimiento.fecha %}</small>
+              </td>
+              <td>
+                {% if movimiento.usuario %}
+                  {{ movimiento.usuario.get_username }}
+                {% else %}
+                  <span class="texto-suave">sistema</span>
+                {% endif %}
+                {% if movimiento.direccion_ip %}
+                  <br><small class="texto-suave">{{ movimiento.direccion_ip }}</small>
+                {% endif %}
+              </td>
+              <td>
+                <span class="insignia {% if movimiento.tipo == 'PAGO' %}verde{% elif movimiento.tipo == 'ANULACION' %}rojo{% elif movimiento.tipo == 'INGRESO' %}azul{% else %}gris{% endif %}">
+                  {{ movimiento.get_tipo_display }}
+                </span>
+              </td>
+              <td>{{ movimiento.descripcion }}</td>
+              <td>
+                {% if movimiento.cliente %}
+                  <a href="{% url 'ficha_cliente' movimiento.cliente.id %}">
+                    {{ movimiento.cliente.nombre_corto }}
+                  </a>
+                {% else %}
+                  <span class="texto-suave">-</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if paginador.num_pages > 1 %}
+      <div class="tarjeta-pie">
+        <div class="paginacion">
+          {% if movimientos.has_previous %}
+            <a href="?tipo={{ tipo }}&amp;usuario={{ usuario_id }}&amp;q={{ q }}&amp;pagina={{ movimientos.previous_page_number }}">&larr; Anterior</a>
+          {% else %}
+            <span class="inhabilitado">&larr; Anterior</span>
+          {% endif %}
+          <span>Pagina {{ movimientos.number }} de {{ paginador.num_pages }}</span>
+          {% if movimientos.has_next %}
+            <a href="?tipo={{ tipo }}&amp;usuario={{ usuario_id }}&amp;q={{ q }}&amp;pagina={{ movimientos.next_page_number }}">Siguiente &rarr;</a>
+          {% else %}
+            <span class="inhabilitado">Siguiente &rarr;</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="tarjeta-cuerpo centrado" style="padding:2.2rem 1rem">
+      <div style="font-size:2.4rem">&#128203;</div>
+      <h3>Sin movimientos para mostrar</h3>
+      <p class="texto-suave mb-0">
+        Aqui queda registrado todo lo que se hace en el sistema: crear
+        clientes, cobrar, anular pagos y cambiar la configuracion.
+      </p>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

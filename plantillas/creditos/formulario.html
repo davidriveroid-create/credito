@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_creditos %}activo{% endblock %}
+{% block titulo %}Nuevo credito{% endblock %}
+{% block encabezado %}
+  Nueva venta a credito
+  {% if cliente_fijo %}&middot; {{ cliente_fijo.nombre_completo }}{% endif %}
+{% endblock %}
+{% block buscador %}{% endblock %}
+
+{% block contenido %}
+<div class="rejilla-2" style="grid-template-columns:1fr 340px">
+
+  <form method="post" id="form-credito" class="formulario">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="mensaje mensaje-error">
+        <span>&#10007;</span>
+        <span>{% for error in form.non_field_errors %}{{ error }}<br>{% endfor %}</span>
+      </div>
+    {% endif %}
+
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>1. Cliente y producto</h2>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="grupo">
+          <label for="{{ form.cliente.id_for_label }}">{{ form.cliente.label }}</label>
+          {{ form.cliente }}
+          {% for error in form.cliente.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          <span class="ayuda">
+            No aparece el cliente?
+            <a href="{% url 'nuevo_cliente' %}">Registrar un cliente nuevo</a>
+          </span>
+        </div>
+
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.producto_id.id_for_label }}">{{ form.producto_id.label }}</label>
+            {{ form.producto_id }}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.producto_texto.id_for_label }}">Nombre del producto</label>
+            {{ form.producto_texto }}
+            <span class="ayuda">Se llena solo si eligio uno del catalogo.</span>
+            {% for error in form.producto_texto.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+
+        <div class="grupo">
+          <label for="{{ form.fecha_venta.id_for_label }}">{{ form.fecha_venta.label }}</label>
+          {{ form.fecha_venta }}
+          {% for error in form.fecha_venta.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>2. Valores</h2>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.precio_contado.id_for_label }}">{{ form.precio_contado.label }}</label>
+            {{ form.precio_contado }}
+            <span class="ayuda">Lo que costaria pagando de una vez.</span>
+            {% for error in form.precio_contado.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.precio_financiado.id_for_label }}">{{ form.precio_financiado.label }}</label>
+            {{ form.precio_financiado }}
+            <span class="ayuda">Lo que pagara en total, cuota inicial incluida.</span>
+            {% for error in form.precio_financiado.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.cuota_inicial.id_for_label }}">{{ form.cuota_inicial.label }}</label>
+            {{ form.cuota_inicial }}
+            {% for error in form.cuota_inicial.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.valor_financiado.id_for_label }}">{{ form.valor_financiado.label }}</label>
+            {{ form.valor_financiado }}
+            <span class="ayuda">Se calcula solo al escribir arriba.</span>
+            {% for error in form.valor_financiado.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>3. Plan de pagos</h2>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.frecuencia.id_for_label }}">{{ form.frecuencia.label }}</label>
+            {{ form.frecuencia }}
+            <span class="ayuda">Cada cuanto paga el cliente.</span>
+            {% for error in form.frecuencia.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.numero_cuotas.id_for_label }}">{{ form.numero_cuotas.label }}</label>
+            {{ form.numero_cuotas }}
+            {% for error in form.numero_cuotas.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.fecha_primera_cuota.id_for_label }}">{{ form.fecha_primera_cuota.label }}</label>
+            {{ form.fecha_primera_cuota }}
+            {% for error in form.fecha_primera_cuota.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.valor_cuota.id_for_label }}">{{ form.valor_cuota.label }}</label>
+            {{ form.valor_cuota }}
+            {% for error in form.valor_cuota.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+
+        <div class="grupo">
+          <label for="{{ form.observaciones.id_for_label }}">{{ form.observaciones.label }}</label>
+          {{ form.observaciones }}
+        </div>
+      </div>
+    </div>
+
+    <div class="boton-fila">
+      <button type="submit" class="boton boton-primario boton-grande">
+        Crear credito y generar cuotas
+      </button>
+      <a href="{% if cliente_fijo %}{% url 'ficha_cliente' cliente_fijo.id %}{% else %}{% url 'creditos' %}{% endif %}"
+         class="boton boton-neutro">Cancelar</a>
+    </div>
+  </form>
+
+  <div>
+    <div id="preview-plan" style="display:none"></div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Como leer estos campos</h2>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="tarjeta-mini mb-1">
+          <span class="titulo">&#128176; Los numeros</span>
+          <b>Precio de contado:</b> lo que vale el producto si se paga completo.<br>
+          <b>Precio financiado:</b> lo que el cliente va a pagar en total.<br>
+          <b>Cuota inicial:</b> lo que abona hoy, de una vez.<br>
+          <b>Saldo a financiar:</b> se calcula solo.<br>
+          <b>Valor de la cuota:</b> si lo deja vacio, el sistema lo divide solo.
+        </div>
+
+        <div class="tarjeta-mini">
+          <span class="titulo">&#128197; Ejemplo del enunciado</span>
+          Producto: Xiaomi Scooter<br>
+          Precio de contado: $1.000.000<br>
+          Precio financiado: $2.000.000<br>
+          Cuota inicial: $200.000<br>
+          Saldo financiado: $1.800.000<br>
+          Diario, 36 cuotas = $50.000 cada una
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta mt-2">
+      <div class="tarjeta-cabecera">
+        <h2>&#9888; Antes de guardar</h2>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <ul class="lista-simple">
+          <li>Las cuotas se generan solas y no se pueden borrar despues.</li>
+          <li>El numero de cuotas y la frecuencia quedan fijos.</li>
+          <li>Si se equivoca, puede anular el credito mientras no tenga pagos.</li>
+          <li>Las cuotas siempre suman exactamente el saldo financiado.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

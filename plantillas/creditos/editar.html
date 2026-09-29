@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_creditos %}activo{% endblock %}
+{% block titulo %}Editar credito #{{ credito.id }}{% endblock %}
+{% block buscador %}{% endblock %}
+{% block encabezado %}
+  Editar credito
+  <small>#{{ credito.id }} &middot; {{ credito.nombre_producto }} &middot; {{ cliente.nombre_completo }}</small>
+{% endblock %}
+
+{% block contenido %}
+<div style="max-width:700px">
+
+  <div class="aviso-anticipo" style="background:#dbeafe;border-color:var(--azul-claro);color:#1e3a8a">
+    <strong>&#128274; Que NO se puede cambiar despues</strong>
+    El saldo financiado, el numero de cuotas, la forma de pago y las fechas
+    del plan ya tienen historial de pagos encima. Cambiarlos desbarataria
+    los saldos. Si el problema es un pago mal digitado, use
+    <strong>Corregir pago</strong> o <strong>Anular pago</strong> en la ficha
+    del credito.
+  </div>
+
+  <div class="tarjeta mb-2">
+    <div class="tarjeta-cabecera">
+      <h2>Datos fijos (no editables)</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <div class="resumen-linea">
+        <span class="etiqueta">Cliente</span>
+        <span class="valor">
+          <a href="{% url 'ficha_cliente' cliente.id %}">{{ cliente.nombre_completo }}</a>
+        </span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Saldo financiado</span>
+        <span class="valor">{% pesos credito.valor_financiado %}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Forma de pago</span>
+        <span class="valor">{{ credito.frecuencia.nombre }}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Numero de cuotas</span>
+        <span class="valor">{{ credito.numero_cuotas }} de {% pesos credito.valor_cuota %}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Cuotas pagadas</span>
+        <span class="valor">{{ credito.cuotas_pagadas }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Datos que si puede cambiar</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <form method="post" class="formulario">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="mensaje mensaje-error">
+            <span>&#10007;</span>
+            <span>{% for error in form.non_field_errors %}{{ error }}<br>{% endfor %}</span>
+          </div>
+        {% endif %}
+
+        <div class="grupo">
+          <label for="{{ form.producto_texto.id_for_label }}">{{ form.producto_texto.label }}</label>
+          {{ form.producto_texto }}
+          {% for error in form.producto_texto.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+        </div>
+
+        <div class="fila">
+          <div class="grupo">
+            <label for="{{ form.precio_contado.id_for_label }}">{{ form.precio_contado.label }}</label>
+            {{ form.precio_contado }}
+            {% for error in form.precio_contado.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="grupo">
+            <label for="{{ form.precio_financiado.id_for_label }}">{{ form.precio_financiado.label }}</label>
+            {{ form.precio_financiado }}
+            <span class="ayuda">Solo puede subirlo, nunca bajarlo.</span>
+            {% for error in form.precio_financiado.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+
+        <div class="grupo">
+          <label for="{{ form.fecha_venta.id_for_label }}">{{ form.fecha_venta.label }}</label>
+          {{ form.fecha_venta }}
+          {% for error in form.fecha_venta.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+        </div>
+
+        <div class="grupo">
+          <label for="{{ form.observaciones.id_for_label }}">{{ form.observaciones.label }}</label>
+          {{ form.observaciones }}
+        </div>
+
+        <div class="boton-fila">
+          <button type="submit" class="boton boton-primario boton-grande">Guardar cambios</button>
+          <a href="{% url 'ficha_credito' credito.id %}" class="boton boton-neutro">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ titulo }} - Sistema de creditos</title>
+  <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+</head>
+<body>
+<div class="entrada">
+  <div class="entrada-caja">
+    <div class="entrada-cabecera">
+      <div style="font-size:2.6rem">&#128260;</div>
+      <h1>{{ titulo }}</h1>
+      <p>{{ mensaje }}</p>
+    </div>
+    <div class="entrada-formulario">
+      <div class="tarjeta-mini">
+        <span class="titulo">&#128161; Que hacer</span>
+        {{ sugerencia }}
+      </div>
+      <a href="/" class="boton boton-primario boton-grande boton-bloque mt-2">
+        Volver a empezar
+      </a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

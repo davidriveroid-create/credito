@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block titulo %}Comprobante {{ datos.recibo }}{% endblock %}
+{% block buscador %}{% endblock %}
+{% block encabezado %}
+  Comprobante de pago
+  <small>{{ datos.recibo }}</small>
+{% endblock %}
+
+{% block contenido %}
+<div class="comprobante-envoltura">
+  <div class="boton-fila no-imprimir mb-2" style="justify-content:center">
+    <button class="boton boton-primario" onclick="window.print()">&#128424; Imprimir</button>
+    <a class="boton boton-exito" target="_blank" rel="noopener"
+       href="https://wa.me/?text={{ datos.cliente|urlencode }}%20%2B%20{% numero datos.valor %}%20COP%20%0AComprobante%20{{ datos.recibo }}%20del%20{% fecha datos.fecha %}">
+       &#128172; Compartir</a>
+    <a class="boton boton-neutro" href="{% url 'registrar_pago' datos.credito_id %}">+ Otro pago</a>
+    <a class="boton boton-neutro" href="{% url 'ficha_cliente' cliente_id %}">Ver cliente</a>
+  </div>
+
+  <div class="comprobante" id="comprobante">
+    {% if pago.anulado %}<div class="sello-pagado">ANULADO</div>{% endif %}
+
+    <div class="negocio">
+      <h2>{{ datos.negocio }}</h2>
+      {% if datos.nit %}<p>NIT {{ datos.nit }}</p>{% endif %}
+      {% if datos.telefono %}<p>Tel: {{ datos.telefono }}</p>{% endif %}
+      {% if datos.direccion %}<p>{{ datos.direccion }}</p>{% endif %}
+    </div>
+
+    <div class="linea">
+      <span class="etiqueta">Comprobante No.</span>
+      <span class="valor">{{ datos.recibo }}</span>
+    </div>
+    <div class="linea">
+      <span class="etiqueta">Fecha y hora</span>
+      <span class="valor">{% fecha_larga datos.fecha %} &middot; {% reloj datos.hora %}</span>
+    </div>
+
+    <hr class="separador" style="border:none;border-top:1px solid var(--borde)">
+
+    <div class="linea">
+      <span class="etiqueta">Cliente</span>
+      <span class="valor">{{ datos.cliente }}</span>
+    </div>
+    <div class="linea">
+      <span class="etiqueta">Cedula</span>
+      <span class="valor dato-sensible">{{ datos.cedula }}</span>
+    </div>
+    <div class="linea">
+      <span class="etiqueta">Telefono</span>
+      <span class="valor">{{ datos.telefono_cliente }}</span>
+    </div>
+
+    <hr class="separador" style="border:none;border-top:1px solid var(--borde)">
+
+    <div class="linea">
+      <span class="etiqueta">Producto</span>
+      <span class="valor">{{ datos.producto }}</span>
+    </div>
+    <div class="linea">
+      <span class="etiqueta">Credito</span>
+      <span class="valor">#{{ datos.credito_id }} &middot; {{ datos.frecuencia }}</span>
+    </div>
+    {% if datos.cuota_numero %}
+      <div class="linea">
+        <span class="etiqueta">Cuota aplicada</span>
+        <span class="valor">
+          Cuota {{ datos.cuota_numero }} de {% numero datos.cuota_valor %}
+          (vence {% fecha datos.cuota_fecha %})
+        </span>
+      </div>
+    {% else %}
+      <div class="linea">
+        <span class="etiqueta">Aplicacion</span>
+        <span class="valor">Pago anticipado</span>
+      </div>
+    {% endif %}
+    <div class="linea">
+      <span class="etiqueta">Metodo de pago</span>
+      <span class="valor">{{ datos.metodo }}</span>
+    </div>
+    {% if datos.referencia %}
+      <div class="linea">
+        <span class="etiqueta">Referencia</span>
+        <span class="valor">{{ datos.referencia }}</span>
+      </div>
+    {% endif %}
+
+    <div class="destacado">
+      <span class="etiqueta">Valor recibido</span>
+      <span class="monto">{% pesos datos.valor %}</span>
+    </div>
+
+    <div class="linea">
+      <span class="etiqueta">Saldo antes del pago</span>
+      <span class="valor">{% pesos datos.saldo_antes %}</span>
+    </div>
+    <div class="linea">
+      <span class="etiqueta">Saldo despues del pago</span>
+      <span class="valor negrita">{% pesos datos.saldo_despues %}</span>
+    </div>
+    <div class="linea">
+      <span class="etiqueta">Saldo que queda del credito</span>
+      <span class="valor {% if datos.saldo_credito > 0 %}texto-naranja{% endif %}">
+        {% pesos datos.saldo_credito %}
+      </span>
+    </div>
+
+    <div class="linea">
+      <span class="etiqueta">Valor en letras</span>
+      <span class="valor" style="font-size:.78rem">{% en_letras datos.valor %}</span>
+    </div>
+
+    {% if datos.observaciones %}
+      <div class="linea">
+        <span class="etiqueta">Observaciones</span>
+        <span class="valor">{{ datos.observaciones }}</span>
+      </div>
+    {% endif %}
+
+    <div class="pie">
+      {% if datos.mensaje %}<p>{{ datos.mensaje }}</p>{% endif %}
+      <p>Atendido por: {{ datos.cajero }}</p>
+      {% if pago.anulado %}
+        <p class="texto-rojo negrita">Este comprobante fue ANULADO.</p>
+        <p>{% momento pago.fecha_anulacion %}<br>{{ pago.motivo_anulacion }}</p>
+      {% endif %}
+      <p style="margin-top:.4rem">Conserve este comprobante. Gracias.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

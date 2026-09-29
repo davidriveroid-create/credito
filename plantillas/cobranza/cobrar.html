@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_cobrar %}activo{% endblock %}
+{% block titulo %}Cobrar - {{ negocio.nombre_negocio }}{% endblock %}
+{% block encabezado %}
+  Registrar pago
+  <small>Busque al cliente por nombre, apellido o cedula</small>
+{% endblock %}
+{% block buscador %}{% endblock %}
+
+{% block contenido %}
+<div style="max-width:760px">
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>&#128269; &#191;A quien va a cobrar?</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <form method="get" action="{% url 'cobrar' %}">
+        <div class="grupo">
+          <label for="q">Nombre, apellido o numero de cedula</label>
+          <input type="search" id="q" name="q" class="campo campo-grande"
+                 value="{{ texto }}" autofocus placeholder="Juan, Perez, 123456789..."
+                 autocomplete="off">
+          <span class="ayuda">Empiece a escribir y apareceran los clientes.</span>
+        </div>
+        <button type="submit" class="boton boton-primario boton-bloque boton-grande">
+          Buscar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {% if texto|length >= 2 %}
+    <div class="tarjeta mt-2">
+      <div class="tarjeta-cabecera">
+        <h2>Clientes encontrados</h2>
+        <span class="texto-pequeno texto-suave">{{ resultados|length }} resultado{{ resultados|length|pluralize:"s" }}</span>
+      </div>
+
+      {% if resultados %}
+        <div class="tabla-envoltura">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Cedula</th>
+                <th>Telefono</th>
+                <th class="derecha">Saldo</th>
+                <th class="derecha"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cliente in resultados %}
+                <tr>
+                  <td>
+                    <strong>{{ cliente.nombre_completo }}</strong>
+                    <br><small class="texto-suave">{{ cliente.ciudad }}</small>
+                  </td>
+                  <td><span class="dato-sensible">{{ cliente.cedula }}</span></td>
+                  <td><a href="tel:{{ cliente.telefono }}">{{ cliente.telefono }}</a></td>
+                  <td class="derecha texto-dinero {% if cliente.saldo > 0 %}texto-naranja{% endif %}">
+                    {% pesos cliente.saldo %}
+                  </td>
+                  <td class="derecha">
+                    <div class="boton-fila" style="flex-wrap:nowrap;justify-content:flex-end">
+                      <a href="tel:{{ cliente.telefono }}" class="boton boton-pequeno boton-neutro">&#128222;</a>
+                      <a href="{% url 'ficha_cliente' cliente.id %}" class="boton boton-pequeno boton-neutro">Ficha</a>
+                      <a href="{% url 'cobrar_cliente' cliente.id %}" class="boton boton-pequeno boton-exito">Cobrar</a>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="tarjeta-cuerpo centrado">
+          <div style="font-size:2.4rem">&#128533;</div>
+          <h3>No se encontro a nadie con "{{ texto }}"</h3>
+          <p class="texto-suave">Revise como esta escrito, o registre el cliente nuevo.</p>
+          <a href="{% url 'nuevo_cliente' %}" class="boton boton-primario">+ Nuevo cliente</a>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

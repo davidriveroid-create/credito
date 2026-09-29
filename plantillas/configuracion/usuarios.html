@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_usuarios %}activo{% endblock %}
+{% block titulo %}Usuarios{% endblock %}
+{% block buscador %}{% endblock %}
+{% block encabezado %}
+  Usuarios del sistema
+  <small>Administradores y cobradores</small>
+{% endblock %}
+
+{% block contenido %}
+<div class="rejilla-2" style="grid-template-columns:1fr 340px">
+
+  <div>
+    <form method="get" class="filtros">
+      <div class="grupo" style="flex:1">
+        <label for="q">Buscar usuario</label>
+        <input type="search" id="q" name="q" class="campo" value="{{ q }}" placeholder="Nombre o usuario">
+      </div>
+      <button type="submit" class="boton boton-primario">Buscar</button>
+    </form>
+
+    <div class="tarjeta">
+      {% for usuario in usuarios %}
+        <div class="tarjeta-pie" style="border-top:none;border-bottom:1px solid var(--borde)">
+          <div class="boton-fila" style="flex-wrap:nowrap;align-items:flex-start">
+            <div class="avatar-grande" style="width:42px;height:42px;font-size:.95rem">
+              {{ usuario.username|slice:":1"|upper }}
+            </div>
+
+            <div style="flex:1;min-width:0">
+              <strong>{{ usuario.get_full_name|default:usuario.username }}</strong>
+              <span class="texto-pequeno texto-suave">@{{ usuario.username }}</span>
+              {% if usuario.perfil %}
+                <span class="insignia {% if usuario.perfil.rol == 'ADMIN' %}azul{% else %}verde{% endif %}">
+                  {{ usuario.perfil.get_rol_display }}
+                </span>
+              {% endif %}
+              {% if not usuario.is_active %}
+                <span class="insignia gris">DESACTIVADO</span>
+              {% elif usuario == request.user %}
+                <span class="insignia amarillo">usted</span>
+              {% endif %}
+
+              <br>
+              <small class="texto-suave">
+                Ultimo ingreso:
+                {% if usuario.last_login %}{% momento usuario.last_login %}{% else %}nunca{% endif %}
+              </small>
+            </div>
+
+            <div class="boton-fila" style="flex-wrap:nowrap">
+              <form method="post" action="{% url 'editar_usuario' usuario.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="activar">
+                <input type="hidden" name="activo" value="{% if usuario.is_active %}0{% else %}1{% endif %}">
+                <button type="submit" class="boton boton-pequeno {% if usuario.is_active %}boton-neutro{% else %}boton-exito{% endif %}">
+                  {% if usuario.is_active %}Desactivar{% else %}Activar{% endif %}
+                </button>
+              </form>
+
+              <details style="position:relative">
+                <summary class="boton boton-pequeno boton-neutro" style="cursor:pointer;list-style:none">
+                  Mas &#9660;
+                </summary>
+                <div class="tarjeta" style="position:absolute;right:0;top:100%;z-index:50;width:280px;padding:.8rem">
+                  <form method="post" action="{% url 'editar_usuario' usuario.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="rol">
+                    <div class="grupo">
+                      <label>Cambiar rol</label>
+                      <select name="rol" class="campo">
+                        <option value="ADMIN" {% if usuario.perfil.rol == 'ADMIN' %}selected{% endif %}>Administrador</option>
+                        <option value="COBRA" {% if usuario.perfil.rol == 'COBRA' %}selected{% endif %}>Cobrador</option>
+                      </select>
+                    </div>
+                    <button type="submit" class="boton boton-primario boton-pequeno boton-bloque">Cambiar rol</button>
+                  </form>
+
+                  <hr class="separador">
+
+                  <form method="post" action="{% url 'editar_usuario' usuario.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="clave">
+                    <div class="grupo">
+                      <label>Nueva contrasena</label>
+                      <input type="text" name="clave" class="campo" placeholder="Minimo 6 caracteres" required>
+                    </div>
+                    <button type="submit" class="boton boton-alerta boton-pequeno boton-bloque"
+                            data-confirmar="Cambiar la contrasena de {{ usuario.username }}?">
+                      Cambiar contrasena
+                    </button>
+                  </form>
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+
+      {% if paginador.num_pages > 1 %}
+        <div class="tarjeta-pie">
+          <div class="paginacion">
+            {% if usuarios.has_previous %}
+              <a href="?pagina={{ usuarios.previous_page_number }}">&larr; Anterior</a>
+            {% endif %}
+            <span>Pagina {{ usuarios.number }} de {{ paginador.num_pages }}</span>
+            {% if usuarios.has_next %}
+              <a href="?pagina={{ usuarios.next_page_number }}">Siguiente &rarr;</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3>+ Nuevo usuario</h3>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <form method="post" action="{% url 'crear_usuario' %}" class="formulario">
+          {% csrf_token %}
+          {% for campo in form %}
+            <div class="grupo">
+              <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+              {{ campo }}
+              {% for error in campo.errors %}<span class="error-campo">{{ error }}</span>{% endfor %}
+            </div>
+          {% endfor %}
+          <button type="submit" class="boton boton-primario boton-bloque">Crear usuario</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="tarjeta mt-2">
+      <div class="tarjeta-cuerpo">
+        <div class="tarjeta-mini">
+          <span class="titulo">&#128274; Que puede hacer cada rol</span>
+          <b>Administrador:</b> todo. Crear clientes y creditos, cobrar,
+          anular pagos, ver reportes, configurar el sistema, crear usuarios
+          y hacer respaldos.<br><br>
+          <b>Cobrador:</b> consultar clientes y creditos, registrar pagos y
+          ver la cartera. No puede anular pagos, cambiar la configuracion ni
+          crear usuarios.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

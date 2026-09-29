@@ -1,0 +1,497 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_clientes %}activo{% endblock %}
+{% block titulo %}{{ cliente.nombre_completo }}{% endblock %}
+{% block encabezado %}
+  {{ cliente.nombre_completo }}
+  <small>Cedula {{ cliente.cedula }} &middot; {{ cliente.ciudad }}</small>
+{% endblock %}
+
+{% block acciones_cabecera %}
+  <a href="{% url 'editar_cliente' cliente.id %}" class="boton boton-neutro">Editar</a>
+  {% if creditos %}
+    <a href="{% url 'cobrar_cliente' cliente.id %}" class="boton boton-exito">Cobrar</a>
+  {% else %}
+    <a href="{% url 'nuevo_credito' %}?cliente={{ cliente.id }}" class="boton boton-primario">+ Nuevo credito</a>
+  {% endif %}
+{% endblock %}
+
+{% block contenido %}
+
+{# ================= CABECERA DEL CLIENTE ================= #}
+<div class="cabecera-ficha">
+  <div class="avatar-grande">
+    {{ cliente.nombres|slice:":1" }}{{ cliente.apellidos|slice:":1" }}
+  </div>
+
+  <div style="flex:1;min-width:220px">
+    <div class="boton-fila" style="align-items:center">
+      <h2 style="margin:0">{{ cliente.nombre_completo }}</h2>
+      {% if not cliente.activo %}
+        <span class="insignia gris">INACTIVO</span>
+      {% endif %}
+      <span class="insignia" style="background:{{ regularidad.color }}22;color:{{ regularidad.color }}">
+        {{ regularidad.etiqueta }}
+      </span>
+    </div>
+
+    <div class="datos-contacto">
+      <div class="dato">
+        <span>Cedula</span>
+        <strong>
+          <span id="dato-cedula" class="dato-sensible" data-real="{{ cliente.cedula }}">{% cedula_oculta cliente.cedula %}</span>
+          <button type="button" class="ojo" data-ver-cifrado="dato-cedula">ver</button>
+        </strong>
+      </div>
+      <div class="dato">
+        <span>Telefono</span>
+        <strong>{{ cliente.telefono }}</strong>
+      </div>
+      <div class="dato">
+        <span>Direccion</span>
+        <strong>{{ cliente.direccion }}</strong>
+      </div>
+      <div class="dato">
+        <span>Ciudad / Barrio</span>
+        <strong>{{ cliente.ciudad }}{% if cliente.barrio %} &middot; {{ cliente.barrio }}{% endif %}</strong>
+      </div>
+      {% if cliente.telefono_alternativo %}
+        <div class="dato">
+          <span>Telefono alterno</span>
+          <strong>{{ cliente.telefono_alternativo }}</strong>
+        </div>
+      {% endif %}
+      {% if cliente.referencia_nombre %}
+        <div class="dato">
+          <span>Referencia</span>
+          <strong>{{ cliente.referencia_nombre }} &middot; {{ cliente.referencia_telefono }}</strong>
+        </div>
+      {% endif %}
+      <div class="dato">
+        <span>Cliente desde</span>
+        <strong>{% fecha cliente.fecha_creacion %}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:right;min-width:200px">
+    <span class="texto-pequeno texto-suave">Saldo total</span>
+    <div style="font-size:1.6rem;font-weight:700" class="texto-dinero">
+      {% pesos resumen.saldo %}
+    </div>
+    <div class="boton-fila mt-1" style="justify-content:flex-end">
+      <a href="{% url 'documentos_cliente' cliente.id %}" class="boton boton-neutro boton-pequeno">
+        Cedula ({{ documentos|length }})
+      </a>
+      <form method="post" action="{% url 'activar_cliente' cliente.id %}">
+        {% csrf_token %}
+        <button type="submit" class="boton boton-pequeno {% if cliente.activo %}boton-neutro{% else %}boton-exito{% endif %}">
+          {% if cliente.activo %}Desactivar{% else %}Activar{% endif %}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ================= REGULARIDAD ================= #}
+<div class="rejilla-33">
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Regularidad de pago</h2>
+      <span class="insignia" style="background:{{ regularidad.color }}22;color:{{ regularidad.color }}">
+        {{ regularidad.etiqueta }}
+      </span>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <div style="font-size:1.9rem;font-weight:700;line-height:1;color:{{ regularidad.color }}">
+        {{ regularidad.porcentaje }}%
+      </div>
+
+      <div class="barra-regularidad" style="height:14px;margin:.5rem 0 .3rem">
+        <div class="barra-relleno" style="width:{{ regularidad.porcentaje }}%;background:{{ regularidad.color }}"></div>
+      </div>
+
+      <div class="barra-detalle">
+        <span class="barra-texto" style="font-size:.9rem">{{ regularidad.barra }}</span>
+        <span class="barra-valor">{{ regularidad.porcentaje }}%</span>
+      </div>
+
+      <p class="texto-suave texto-pequeno mt-1 mb-0">{{ regularidad.explicacion }}</p>
+
+      <hr class="separador">
+
+      <div class="rejilla-50" style="gap:.4rem;margin:0">
+        <div>
+          <div class="resumen-linea">
+            <span class="etiqueta">&#10003; A tiempo</span>
+            <span class="valor texto-verde">{{ regularidad.a_tiempo }}</span>
+          </div>
+          <div class="resumen-linea">
+            <span class="etiqueta">&#9888; Con retraso</span>
+            <span class="valor texto-naranja">{{ regularidad.con_retraso }}</span>
+          </div>
+        </div>
+        <div>
+          <div class="resumen-linea">
+            <span class="etiqueta">&#128308; Vencidas</span>
+            <span class="valor texto-rojo">{{ regularidad.vencidas }}</span>
+          </div>
+          <div class="resumen-linea">
+            <span class="etiqueta">&#9203; Parciales</span>
+            <span class="valor">{{ regularidad.parciales }}</span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="separador">
+
+      <div class="resumen-linea">
+        <span class="etiqueta">Promedio de dias de atraso</span>
+        <span class="valor">{{ regularidad.atraso_promedio }}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Mayor atraso registrado</span>
+        <span class="valor">{{ regularidad.atraso_maximo }} dia{{ regularidad.atraso_maximo|pluralize:"s" }}</span>
+      </div>
+      {% if regularidad.valor_vencido > 0 %}
+        <div class="resumen-linea destacado">
+          <span class="etiqueta">Valor vencido</span>
+          <span class="valor texto-rojo">{% pesos regularidad.valor_vencido %}</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Resumen de dinero</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <div class="resumen-linea">
+        <span class="etiqueta">Total comprado</span>
+        <span class="valor">{% pesos resumen.comprado %}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Total financiado</span>
+        <span class="valor">{% pesos resumen.financiado %}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Total pagado</span>
+        <span class="valor texto-verde">{% pesos resumen.pagado %}</span>
+      </div>
+      <div class="resumen-linea destacado">
+        <span class="etiqueta">Saldo pendiente</span>
+        <span class="valor {% if resumen.saldo > 0 %}texto-naranja{% endif %}">{% pesos resumen.saldo %}</span>
+      </div>
+
+      <hr class="separador">
+
+      <div class="resumen-linea">
+        <span class="etiqueta">Creditos activos</span>
+        <span class="valor">{{ resumen.creditos_activos }}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Creditos terminados</span>
+        <span class="valor">{{ resumen.creditos_pagados }}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Total de creditos</span>
+        <span class="valor">{{ resumen.total_creditos }}</span>
+      </div>
+
+      {% if resumen.financiado > 0 %}
+        <hr class="separador">
+        <div class="texto-pequeno texto-suave mb-1">Progreso de lo pagado</div>
+        {% barra_porcentaje resumen.avance_pct "var(--verde)" "10px" %}
+        <div class="barra-detalle">
+          <span>{% pesos resumen.pagado %} pagado</span>
+          <span>{{ resumen.avance_pct }}% de {% pesos resumen.financiado %}</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Foto de la cedula</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      {% if documentos %}
+        <div class="fotos-cedula">
+          {% for documento in documentos %}
+            <div class="foto-cedula">
+              <img src="{% url 'ver_documento' documento.id %}"
+                   alt="{{ documento.get_tipo_display }}"
+                   data-ampliar="{% url 'ver_documento' documento.id %}"
+                   loading="lazy">
+              <div class="pie">
+                <span>{{ documento.get_tipo_display }}</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="vacio-cedula">
+          <div style="font-size:1.8rem">&#128247;</div>
+          Sin fotos de la cedula
+          <br><small>Recomendable tenerlas a la mano</small>
+        </div>
+      {% endif %}
+      <a href="{% url 'documentos_cliente' cliente.id %}" class="boton boton-neutro boton-bloque boton-pequeno mt-1">
+        Administrar fotos
+      </a>
+    </div>
+  </div>
+</div>
+
+{# ================= CREDITOS ================= #}
+<div class="tarjeta mb-2">
+  <div class="tarjeta-cabecera">
+    <h2>Creditos del cliente</h2>
+    <a href="{% url 'nuevo_credito' %}?cliente={{ cliente.id }}" class="boton boton-primario boton-pequeno">
+      + Nuevo credito
+    </a>
+  </div>
+
+  {% if creditos %}
+    <div class="tabla-envoltura">
+      <table>
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Fecha</th>
+            <th>Forma de pago</th>
+            <th class="derecha">Valor financiado</th>
+            <th class="derecha">Pagado</th>
+            <th class="derecha">Saldo</th>
+            <th class="centro">Cuotas</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for credito in creditos %}
+            <tr>
+              <td>
+                <a href="{% url 'ficha_credito' credito.id %}">
+                  <strong>{{ credito.nombre_producto }}</strong>
+                </a>
+                <br><small class="texto-suave">Credito #{{ credito.id }}</small>
+              </td>
+              <td>{% fecha credito.fecha_venta %}</td>
+              <td>
+                {{ credito.frecuencia.nombre }}
+                <br><small class="texto-suave">
+                  {{ credito.numero_cuotas }} de {% pesos credito.valor_cuota %}
+                </small>
+              </td>
+              <td class="derecha texto-dinero">{% pesos credito.valor_financiado %}</td>
+              <td class="derecha texto-dinero texto-verde">{% pesos credito.total_pagado %}</td>
+              <td class="derecha texto-dinero {% if credito.saldo > 0 %}texto-naranja{% endif %}">
+                {% pesos credito.saldo %}
+              </td>
+              <td class="centro">
+                {{ credito.cuotas_pagadas }}/{{ credito.numero_cuotas }}
+                {% if credito.cuotas_vencidas > 0 %}
+                  <br><small class="texto-rojo negrita">{{ credito.cuotas_vencidas }} vencida{{ credito.cuotas_vencidas|pluralize:"s" }}</small>
+                {% endif %}
+              </td>
+              <td>
+                {% if credito.estado == 'PAGADO' %}
+                  <span class="insignia verde">PAGADO</span>
+                {% elif credito.estado == 'ANULADO' %}
+                  <span class="insignia gris">ANULADO</span>
+                {% elif credito.cuotas_vencidas > 0 %}
+                  <span class="insignia rojo">VENCIDO</span>
+                {% else %}
+                  <span class="insignia azul">ACTIVO</span>
+                {% endif %}
+              </td>
+              <td class="derecha">
+                <a href="{% url 'ficha_credito' credito.id %}" class="boton boton-neutro boton-pequeno">Ver</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="tarjeta-cuerpo centrado">
+      <p class="texto-suave">Este cliente todavia no tiene ningun credito.</p>
+      <a href="{% url 'nuevo_credito' %}?cliente={{ cliente.id }}" class="boton boton-primario">
+        Crear el primer credito
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+{# ================= HISTORIAL DE PAGOS ================= #}
+<div class="tarjeta">
+  <div class="tarjeta-cabecera">
+    <h2>Historial de pagos</h2>
+    <span class="texto-pequeno texto-suave">
+      {{ paginador.count }} pago{{ paginador.count|pluralize:"s" }} en total
+    </span>
+  </div>
+
+  <div class="tarjeta-cuerpo" style="padding-bottom:0">
+    <form method="get" class="filtros" style="margin-bottom:.8rem">
+      <div class="grupo">
+        <label for="desde">Desde</label>
+        <input type="date" id="desde" name="desde" class="campo" value="{{ filtros.desde }}">
+      </div>
+      <div class="grupo">
+        <label for="hasta">Hasta</label>
+        <input type="date" id="hasta" name="hasta" class="campo" value="{{ filtros.hasta }}">
+      </div>
+      <div class="grupo">
+        <label for="f_credito">Credito</label>
+        <select name="credito" id="f_credito" class="campo" data-filtro-auto>
+          <option value="">Todos</option>
+          {% for c in creditos %}
+            <option value="{{ c.id }}" {% if filtros.credito == c.id|stringformat:"s" %}selected{% endif %}>
+              #{{ c.id }} {{ c.nombre_producto|truncatechars:18 }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="grupo">
+        <label for="f_metodo">Metodo</label>
+        <select name="metodo" id="f_metodo" class="campo" data-filtro-auto>
+          <option value="">Todos</option>
+          {% for m in metodos %}
+            <option value="{{ m.id }}" {% if filtros.metodo == m.id|stringformat:"s" %}selected{% endif %}>
+              {{ m.nombre }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="grupo">
+        <label for="f_estado">Estado</label>
+        <select name="estado" id="f_estado" class="campo" data-filtro-auto>
+          <option value="">Todos</option>
+          <option value="vigentes" {% if filtros.estado == 'vigentes' %}selected{% endif %}>Solo vigentes</option>
+          <option value="anulados" {% if filtros.estado == 'anulados' %}selected{% endif %}>Solo anulados</option>
+        </select>
+      </div>
+      <button type="submit" class="boton boton-primario">Filtrar</button>
+      <a href="{% url 'ficha_cliente' cliente.id %}" class="boton boton-neutro">Limpiar</a>
+    </form>
+  </div>
+
+  {% if pagos %}
+    <div class="tabla-envoltura">
+      <table class="tabla-mini">
+        <thead>
+          <tr>
+            <th>Comprobante</th>
+            <th>Fecha</th>
+            <th>Cuota</th>
+            <th>Producto</th>
+            <th class="derecha">Valor</th>
+            <th>Metodo</th>
+            <th class="derecha">Saldo despues</th>
+            <th>Estado</th>
+            {% if es_administrador %}<th></th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for pago in pagos %}
+            <tr {% if pago.anulado %}style="opacity:.6"{% endif %}>
+              <td><a href="{% url 'comprobante' pago.id %}">{{ pago.recibo }}</a></td>
+              <td>
+                {% fecha pago.fecha %}
+                <br><small class="texto-suave">{% reloj pago.hora %}</small>
+              </td>
+              <td>
+                {% if pago.cuota %}
+                  #{{ pago.cuota.numero }}
+                  <br><small class="texto-suave">{% fecha pago.cuota.fecha_vencimiento %}</small>
+                {% else %}
+                  <small class="texto-suave">Anticipo</small>
+                {% endif %}
+              </td>
+              <td>{{ pago.credito.nombre_producto|truncatechars:20 }}</td>
+              <td class="derecha texto-dinero">{% pesos pago.valor %}</td>
+              <td>
+                {{ pago.metodo }}
+                {% if pago.referencia %}
+                  <br><small class="texto-suave">{{ pago.referencia }}</small>
+                {% endif %}
+              </td>
+              <td class="derecha texto-dinero">{% pesos pago.saldo_despues %}</td>
+              <td>
+                {% if pago.anulado %}
+                  <span class="insignia rojo">ANULADO</span>
+                  <br><small class="texto-suave">{{ pago.motivo_anulacion|truncatechars:30 }}</small>
+                {% else %}
+                  <span class="insignia verde">VIGENTE</span>
+                {% endif %}
+              </td>
+              {% if es_administrador %}
+                <td class="derecha">
+                  <div class="boton-fila" style="flex-wrap:nowrap">
+                    <a href="{% url 'comprobante' pago.id %}" class="boton boton-neutro boton-pequeno">Ver</a>
+                    {% if not pago.anulado %}
+                      <a href="{% url 'corregir_pago' pago.id %}" class="boton boton-pequeno boton-alerta">Corregir</a>
+                      <a href="{% url 'anular_pago' pago.id %}" class="boton boton-pequeno boton-peligro">Anular</a>
+                    {% endif %}
+                  </div>
+                </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if paginador.num_pages > 1 %}
+      <div class="tarjeta-pie">
+        <div class="paginacion">
+          {% if pagos.has_previous %}
+            <a href="?desde={{ filtros.desde }}&amp;hasta={{ filtros.hasta }}&amp;ppagina={{ pagos.previous_page_number }}">&larr; Anterior</a>
+          {% else %}
+            <span class="inhabilitado">&larr; Anterior</span>
+          {% endif %}
+
+          <span>Pagina {{ pagos.number }} de {{ paginador.num_pages }}</span>
+
+          {% if pagos.has_next %}
+            <a href="?desde={{ filtros.desde }}&amp;hasta={{ filtros.hasta }}&amp;ppagina={{ pagos.next_page_number }}">Siguiente &rarr;</a>
+          {% else %}
+            <span class="inhabilitado">Siguiente &rarr;</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="tarjeta-cuerpo centrado">
+      <p class="texto-suave mb-0">No hay pagos que coincidan con el filtro.</p>
+    </div>
+  {% endif %}
+</div>
+
+{# ================= MOVIMIENTOS ================= #}
+{% if movimientos %}
+  <div class="tarjeta mt-2">
+    <div class="tarjeta-cabecera">
+      <h2>Movimientos recientes</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <div class="linea-tiempo">
+        {% for movimiento in movimientos %}
+          <div class="evento {% if movimiento.tipo == 'PAGO' %}pago{% elif movimiento.tipo == 'ANULACION' %}anulacion{% endif %}">
+            {{ movimiento.descripcion }}
+            <small>
+              {% momento movimiento.fecha %}
+              {% if movimiento.usuario %} &middot; {{ movimiento.usuario.get_username }}{% endif %}
+            </small>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_creditos %}activo{% endblock %}
+{% block titulo %}Creditos - {{ negocio.nombre_negocio }}{% endblock %}
+{% block encabezado %}
+  Creditos / Ventas a credito
+  <small>{{ total }} credito{{ total|pluralize }} en total</small>
+{% endblock %}
+
+{% block acciones_cabecera %}
+  <a href="{% url 'nuevo_credito' %}" class="boton boton-primario">+ Nuevo credito</a>
+{% endblock %}
+
+{% block contenido %}
+
+<form method="get" class="filtros">
+  <div class="grupo" style="flex:1;min-width:220px">
+    <label for="q">Buscar</label>
+    <input type="search" id="q" name="q" class="campo" value="{{ q }}"
+           placeholder="Cliente, cedula, producto o numero de credito">
+  </div>
+
+  <div class="grupo">
+    <label for="estado">Estado</label>
+    <select name="estado" id="estado" class="campo" data-filtro-auto>
+      <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Todos</option>
+      <option value="activos" {% if estado == 'activos' %}selected{% endif %}>Activos (deben dinero)</option>
+      <option value="pagados" {% if estado == 'pagados' %}selected{% endif %}>Pagados</option>
+      <option value="vencidos" {% if estado == 'vencidos' %}selected{% endif %}>Con cuotas vencidas</option>
+      <option value="anulados" {% if estado == 'anulados' %}selected{% endif %}>Anulados</option>
+    </select>
+  </div>
+
+  <button type="submit" class="boton boton-primario">Filtrar</button>
+  <a href="{% url 'creditos' %}" class="boton boton-neutro">Limpiar</a>
+  <a href="{% url 'productos' %}" class="boton boton-neutro">Catalogo de productos</a>
+</form>
+
+{% if creditos %}
+  <div class="tarjeta">
+    <div class="tabla-envoltura">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Cliente</th>
+            <th>Producto</th>
+            <th>Fecha venta</th>
+            <th>Forma de pago</th>
+            <th class="derecha">Financiado</th>
+            <th class="derecha">Cuota</th>
+            <th class="derecha">Saldo</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for credito in creditos %}
+            <tr>
+              <td class="texto-suave">{{ credito.id }}</td>
+              <td>
+                <a href="{% url 'ficha_cliente' credito.cliente.id %}">
+                  <strong>{{ credito.cliente.nombre_corto }}</strong>
+                </a>
+                <br><small class="texto-suave">{{ credito.cliente.cedula }}</small>
+              </td>
+              <td>{{ credito.nombre_producto|truncatechars:24 }}</td>
+              <td>
+                {% fecha credito.fecha_venta %}
+                <br><small class="texto-suave">
+                  {% relativo credito.fecha_venta %}
+                  {% if credito.fecha_finalizacion %}
+                    &middot; termino {% fecha credito.fecha_finalizacion %}
+                  {% endif %}
+                </small>
+              </td>
+              <td>
+                {{ credito.frecuencia.nombre }}
+                <br><small class="texto-suave">{{ credito.numero_cuotas }} cuotas</small>
+              </td>
+              <td class="derecha texto-dinero">{% pesos credito.valor_financiado %}</td>
+              <td class="derecha texto-dinero">{% pesos credito.valor_cuota %}</td>
+              <td class="derecha texto-dinero {% if credito.saldo > 0 %}texto-naranja{% endif %}">
+                {% pesos credito.saldo %}
+              </td>
+              <td>
+                {% if credito.estado == 'PAGADO' %}
+                  <span class="insignia verde">PAGADO</span>
+                {% elif credito.estado == 'ANULADO' %}
+                  <span class="insignia gris">ANULADO</span>
+                {% elif credito.cuotas_vencidas > 0 %}
+                  <span class="insignia rojo">VENCIDO</span>
+                  <br><small class="texto-rojo">{{ credito.cuotas_vencidas }} cuota{{ credito.cuotas_vencidas|pluralize:"s" }}</small>
+                {% else %}
+                  <span class="insignia azul">ACTIVO</span>
+                  <br><small class="texto-suave">{{ credito.cuotas_pagadas }}/{{ credito.numero_cuotas }} pagadas</small>
+                {% endif %}
+              </td>
+              <td class="derecha">
+                <div class="boton-fila" style="flex-wrap:nowrap">
+                  <a href="{% url 'ficha_credito' credito.id %}" class="boton boton-neutro boton-pequeno">Ver</a>
+                  {% if credito.estado == 'ACTIVO' %}
+                    <a href="{% url 'registrar_pago' credito.id %}" class="boton boton-exito boton-pequeno">Cobrar</a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if paginador.num_pages > 1 %}
+      <div class="tarjeta-pie">
+        <div class="paginacion">
+          {% if creditos.has_previous %}
+            <a href="?q={{ q }}&amp;estado={{ estado }}&amp;pagina={{ creditos.previous_page_number }}">&larr; Anterior</a>
+          {% else %}
+            <span class="inhabilitado">&larr; Anterior</span>
+          {% endif %}
+          <span>Pagina {{ creditos.number }} de {{ paginador.num_pages }}</span>
+          {% if creditos.has_next %}
+            <a href="?q={{ q }}&amp;estado={{ estado }}&amp;pagina={{ creditos.next_page_number }}">Siguiente &rarr;</a>
+          {% else %}
+            <span class="inhabilitado">Siguiente &rarr;</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="tarjeta">
+    <div class="tarjeta-cuerpo centrado" style="padding:2.5rem 1rem">
+      <div style="font-size:2.6rem">&#128179;</div>
+      <h3>No hay creditos para mostrar</h3>
+      <p class="texto-suave">
+        {% if q %}Ningun credito coincide con "{{ q }}".<br>{% else %}Empiece registrando la primera venta a credito.<br>{% endif %}
+      </p>
+      <a href="{% url 'nuevo_credito' %}" class="boton boton-primario boton-grande">+ Nuevo credito</a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

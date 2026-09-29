@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% load formato %}
+
+{% block activo_dashboard %}activo{% endblock %}
+{% block titulo %}Panel - {{ negocio.nombre_negocio }}{% endblock %}
+{% block encabezado %}
+  Panel de control
+  <small>Hoy es {{ resumen.hoy|date:"l d \d\e F \d\e Y" }}</small>
+{% endblock %}
+
+{% block acciones_cabecera %}
+  <a href="{% url 'cobrar' %}" class="boton boton-exito">+ Registrar pago</a>
+{% endblock %}
+
+{% block contenido %}
+
+{# ================= CIFRAS ================= #}
+<div class="rejilla-tarjetas">
+  <div class="cifra">
+    <span class="etiqueta">Clientes</span>
+    <span class="valor">{{ resumen.total_clientes }}</span>
+    <span class="nota">{{ resumen.clientes_con_credito_activo }} con credito activo</span>
+  </div>
+
+  <div class="cifra verde">
+    <span class="etiqueta">Clientes al dia</span>
+    <span class="valor">{{ resumen.clientes_al_dia }}</span>
+    <span class="nota"> Pagan puntualmente</span>
+  </div>
+
+  <div class="cifra naranja">
+    <span class="etiqueta">Clientes atrasados</span>
+    <span class="valor">{{ resumen.clientes_atrasados }}</span>
+    <span class="nota">Con cuotas vencidas</span>
+  </div>
+
+  <div class="cifra rojo">
+    <span class="etiqueta">Clientes en mora</span>
+    <span class="valor">{{ resumen.clientes_en_mora }}</span>
+    <span class="nota">Atraso grave, requieren visita</span>
+  </div>
+
+  <div class="cifra">
+    <span class="etiqueta">Total vendido a credito</span>
+    <span class="valor texto-dinero">{% pesos resumen.total_vendido %}</span>
+    <span class="nota">{{ resumen.creditos_activos }} creditos activos</span>
+  </div>
+
+  <div class="cifra verde">
+    <span class="etiqueta">Total cobrado</span>
+    <span class="valor texto-dinero">{% pesos resumen.total_cobrado %}</span>
+    <span class="nota">{% avance resumen.total_cobrado resumen.total_financiado %}% de lo financiado</span>
+  </div>
+
+  <div class="cifra naranja">
+    <span class="etiqueta">Total pendiente por cobrar</span>
+    <span class="valor texto-dinero">{% pesos resumen.total_pendiente %}</span>
+    <span class="nota">De {% pesos resumen.total_financiado %} financiados</span>
+  </div>
+
+  <div class="cifra rojo">
+    <span class="etiqueta">Cartera vencida</span>
+    <span class="valor texto-dinero">{% pesos resumen.cartera_vencida %}</span>
+    <span class="nota">{{ resumen.cantidad_cuotas_vencidas }} cuotas vencidas</span>
+  </div>
+
+  <div class="cifra verde">
+    <span class="etiqueta">Cobrado hoy</span>
+    <span class="valor texto-dinero">{% pesos resumen.cobrado_hoy %}</span>
+    <span class="nota">{{ resumen.cantidad_pagos_hoy }} pago(s) recibidos</span>
+  </div>
+
+  <div class="cifra">
+    <span class="etiqueta">Cobrado la semana</span>
+    <span class="valor texto-dinero">{% pesos resumen.cobrado_semana %}</span>
+    <span class="nota">Ultimos 7 dias</span>
+  </div>
+
+  <div class="cifra">
+    <span class="etiqueta">Cobrado el mes</span>
+    <span class="valor texto-dinero">{% pesos resumen.cobrado_mes %}</span>
+    <span class="nota">Desde el {{ resumen.hoy|date:"j" }} de {{ resumen.hoy|date:"F" }}</span>
+  </div>
+
+  <div class="cifra {% if resumen.cuotas_pendientes_hoy %}naranja{% else %}verde{% endif %}">
+    <span class="etiqueta">Cuotas por cobrar hoy</span>
+    <span class="valor">{{ resumen.cuotas_pendientes_hoy }}</span>
+    <span class="nota">de {{ resumen.cuotas_por_cobrar_hoy }} programadas</span>
+  </div>
+</div>
+
+{# ================= GRAFICOS ================= #}
+<div class="rejilla-2">
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Cobros de los ultimos 14 dias</h2>
+      <span class="texto-pequeno texto-suave">Pase el cursor sobre una barra</span>
+    </div>
+    <div class="tarjeta-cuerpo">
+      {% puntos_barras grafico "total" maximo_grafico %}
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Estado de los clientes</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      {% if resumen.clientes_con_credito_activo > 0 %}
+        <div class="torta" style="background:{% for item in comparativo %}{% if item.valor > 0 %}{{ item.color }} {{ item.desde }}deg {{ item.hasta }}deg{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}">
+          <div class="torta-centro">
+            <span class="numero">{{ resumen.clientes_con_credito_activo }}</span>
+            <span class="texto">clientes</span>
+          </div>
+        </div>
+      {% else %}
+        <p class="texto-suave centrado texto-pequeno">
+          Todavia no hay clientes con credito activo.
+        </p>
+      {% endif %}
+
+      <div class="leyenda">
+        {% for item in comparativo %}
+          <div class="leyenda-item">
+            <span class="punto" style="background:{{ item.color }}"></span>
+            <span>{{ item.nombre }}</span>
+            <span class="valor">{{ item.valor }}</span>
+            {% if item.porcentaje %}<span class="texto-suave texto-pequeno">({{ item.porcentaje }}%)</span>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <hr class="separador">
+
+      <div class="resumen-linea">
+        <span class="etiqueta">Cobrado hoy</span>
+        <span class="valor texto-verde">{% pesos resumen.cobrado_hoy %}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Esperado hoy ({{ resumen.cuotas_por_cobrar_hoy }} cuotas)</span>
+        <span class="valor">{% pesos resumen.valor_esperado_hoy %}</span>
+      </div>
+      <div class="resumen-linea">
+        <span class="etiqueta">Recibido de esas cuotas</span>
+        <span class="valor texto-verde">{% pesos resumen.valor_recibido_hoy %}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ================= A QUIEN COBRARLE ================= #}
+<div class="rejilla-50">
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>A quien cobrarle ya</h2>
+      <a href="{% url 'cobros_pendientes' %}" class="boton boton-pequeno boton-neutro">Ver todos ({{ total_por_hacer }})</a>
+    </div>
+    {% if por_hacer %}
+      <div class="tabla-envoltura">
+        <table class="tabla-mini">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Cuota</th>
+              <th class="derecha">Debe</th>
+              <th>Atraso</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fila in por_hacer %}
+              <tr>
+                <td>
+                  <a href="{% url 'ficha_cliente' fila.cliente.id %}"><strong>{{ fila.cliente.nombre_corto }}</strong></a>
+                  <br><small class="texto-suave">{{ fila.credito.nombre_producto|truncatechars:22 }}</small>
+                </td>
+                <td>
+                  <span class="estado-cuota {% color_estado fila.estado_siguiente %}">{{ fila.cuota.numero }}</span>
+                  <br><small class="texto-suave">{% fecha fila.cuota.fecha_vencimiento %}</small>
+                </td>
+                <td class="derecha texto-dinero">{% pesos fila.saldo_cuota %}</td>
+                <td>
+                  {% if fila.atraso > 0 %}
+                    <span class="insignia" style="background:{{ fila.regularidad.color }}22;color:{{ fila.regularidad.color }}">
+                      {{ fila.atraso }} d&iacute;a{{ fila.atraso|pluralize:"s" }}
+                    </span>
+                  {% else %}
+                    <span class="insignia azul">HOY</span>
+                  {% endif %}
+                </td>
+                <td class="derecha">
+                  <a href="{% url 'registrar_pago' fila.credito.id %}?cuota={{ fila.cuota.id }}"
+                     class="boton boton-exito boton-pequeno">Cobrar</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="tarjeta-cuerpo centrado">
+        <div style="font-size:2.4rem">&#127881;</div>
+        <p class="negrita">No hay nadie atrasado</p>
+        <p class="texto-suave texto-pequeno mb-0">Todos los clientes con credito activo estan al dia.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Ultimos pagos recibidos</h2>
+      <a href="{% url 'historial_pagos' %}" class="boton boton-pequeno boton-neutro">Ver todos</a>
+    </div>
+    <div class="tarjeta-cuerpo">
+      {% if ultimos_pagos %}
+        <ul class="lista-simple">
+          {% for pago in ultimos_pagos %}
+            <li>
+              <div style="flex:1;min-width:0">
+                <strong>{{ pago.credito.cliente.nombre_corto }}</strong>
+                <small class="texto-suave" style="display:block;font-size:.72rem">
+                  {% fecha pago.fecha %} {% reloj pago.hora %} &middot; {{ pago.metodo }}
+                  &middot; Rec. {{ pago.recibo }}
+                </small>
+              </div>
+              <strong class="texto-verde">{% pesos pago.valor %}</strong>
+              <a href="{% url 'comprobante' pago.id %}" class="boton boton-pequeno boton-neutro">&#128065;</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="texto-suave centrado texto-pequeno">Todavia no se ha registrado ningun pago.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="rejilla-50">
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Vienen pagando en los proximos dias</h2>
+      <a href="{% url 'calendario' %}" class="boton boton-pequeno boton-neutro">Ver calendario</a>
+    </div>
+    {% if por_hacer_proximos %}
+      <div class="tabla-envoltura">
+        <table class="tabla-mini">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Vence</th>
+              <th class="derecha">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fila in por_hacer_proximos %}
+              <tr>
+                <td><a href="{% url 'ficha_cliente' fila.cliente.id %}">{{ fila.cliente.nombre_corto }}</a></td>
+                <td>
+                  {% fecha fila.cuota.fecha_vencimiento %}
+                  <br><small class="texto-suave">{% relativo fila.cuota.fecha_vencimiento %}</small>
+                </td>
+                <td class="derecha texto-dinero">{% pesos fila.saldo_cuota %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="tarjeta-cuerpo centrado">
+        <p class="texto-suave texto-pequeno mb-0">No hay cuotas programadas para los proximos dias.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Creditos terminados este mes</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      {% if creditos_recientes %}
+        <ul class="lista-simple">
+          {% for credito in creditos_recientes %}
+            <li>
+              <span class="insignia verde">PAGADO</span>
+              <div style="flex:1;min-width:0">
+                <a href="{% url 'ficha_credito' credito.id %}">{{ credito.cliente.nombre_corto }}</a>
+                <small class="texto-suave" style="display:block;font-size:.72rem">
+                  {{ credito.nombre_producto|truncatechars:20 }} &middot;
+                  {{ credito.cuotas_pagadas }} cuotas &middot; {% pesos credito.valor_financiado %}
+                </small>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="texto-suave centrado texto-pequeno mb-0">Ningun credito se ha terminado este mes.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
